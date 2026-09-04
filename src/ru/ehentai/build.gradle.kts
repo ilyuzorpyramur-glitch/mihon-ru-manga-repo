@@ -5,18 +5,19 @@ plugins {
 }
 
 keiyoushi {
-    name = "E-Hentai"
-    versionCode = 6
+    name = "Học Viện 2Ten"
+    versionCode = 3
     contentWarning = ContentWarning.NSFW
     libVersion = "1.6"
 
     source {
-        lang = "ru"
-        baseUrl = "https://e-hentai.org"
+        lang = "vi"
+        baseUrl {
+            custom("https://hv2tcomics.net")
+        }
     }
 
     deeplink {
-        host("e-hentai.org")
-        path("/g/..*")
+        path("/truyen/..*")
     }
 }

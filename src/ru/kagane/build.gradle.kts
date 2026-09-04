@@ -5,20 +5,19 @@ plugins {
 }
 
 keiyoushi {
-    name = "Kagane"
+    name = "MangaFire"
     versionCode = 33
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
 
-    // Репозиторий русский: оставлен только ru.
-    listOf("ru").forEach {
+    listOf("en", "es", "es-419", "fr", "ja", "pt", "pt-BR").forEach {
         source {
             lang = it
-            baseUrl = "https://kagane.org"
+            baseUrl = "https://mangafire.to"
         }
     }
 
     deeplink {
-        path("/series/..*")
+        path("/title/..*")
     }
 }

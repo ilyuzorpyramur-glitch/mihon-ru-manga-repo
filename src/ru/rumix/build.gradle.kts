@@ -5,18 +5,17 @@ plugins {
 }
 
 keiyoushi {
-    name = "RuMix"
-    versionCode = 8
+    name = "BatCave"
+    versionCode = 11
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 
     source {
-        lang = "ru"
-        baseUrl = "https://rumix.me"
+        lang = "en"
+        baseUrl = "https://batcave.biz"
     }
 
     deeplink {
-        host("rumix.me")
         path("/..*")
     }
 }
