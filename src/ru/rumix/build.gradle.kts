@@ -5,17 +5,13 @@ plugins {
 }
 
 keiyoushi {
-    name = "BatCave"
-    versionCode = 11
+    name = "ToonBr"
+    versionCode = 1
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 
     source {
-        lang = "en"
-        baseUrl = "https://batcave.biz"
-    }
-
-    deeplink {
-        path("/..*")
+        lang = "pt-BR"
+        baseUrl = "https://beta.toonbr.com"
     }
 }
