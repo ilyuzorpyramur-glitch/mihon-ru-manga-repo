@@ -10,7 +10,7 @@
 В Mihon: **Настройки → Расширения → Репозитории → Добавить**, вставить:
 
 ```
-https://raw.githubusercontent.com/Sindrow33/mihon-ru-manga-repo/main/index.min.json
+https://raw.githubusercontent.com/ilyuzorpyramur-glitch/mihon-ru-manga-repo/main/index.min.json
 ```
 
 Затем **Обзор → Расширения** — список появится там.
