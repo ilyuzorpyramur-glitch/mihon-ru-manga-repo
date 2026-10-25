@@ -564,6 +564,23 @@
     ]
   },
   {
+    "name": "MangaLove",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.mangalove",
+    "apk": "tachiyomi-ru.mangalove-v1.4.1.apk",
+    "lang": "ru",
+    "code": 104001,
+    "version": "1.4.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "MangaLove",
+        "lang": "ru",
+        "id": "8",
+        "baseUrl": "https://mangalove.ru"
+      }
+    ]
+  },
+  {
     "name": "MangaMen",
     "pkg": "eu.kanade.tachiyomi.extension.ru.mangamen",
     "apk": "tachiyomi-ru.mangamen-v1.4.2.apk",
