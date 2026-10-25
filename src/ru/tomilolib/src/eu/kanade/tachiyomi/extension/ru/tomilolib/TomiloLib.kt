@@ -1,7 +1,5 @@
 package ru.tomilolib
 
-import android.widget.Toast
-import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreferenceCompat
 import eu.kanade.tachiyomi.network.GET
