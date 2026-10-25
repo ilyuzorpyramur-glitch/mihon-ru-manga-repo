@@ -193,10 +193,10 @@ class AstraManga(
         val step1 = getJson(API_BASE + STEP1_PATH.replace("{id}", manga.url))
         val step1Items = step1.items("data.branches")
         val picked1 = step1Items.firstOrNull { it.flag("is_main") } ?: step1Items.maxByOrNull { it.number("count_chapters") }
-        val branch_id = picked1?.text("id") ?: ""
-        val branch_count = picked1?.text("count_chapters") ?: ""
+        val branchId = picked1?.text("id") ?: ""
+        val branchCount = picked1?.text("count_chapters") ?: ""
 
-        val chapterItems = getJson(API_BASE + CHAPTERS_PATH.replace("{branch_id}", branch_id).replace("{branch_count}", branch_count).replace("{id}", manga.url) + "?page_size=" + branch_count).items("data.items")
+        val chapterItems = getJson(API_BASE + CHAPTERS_PATH.replace("{branch_id}", branchId).replace("{branch_count}", branchCount).replace("{id}", manga.url) + "?page_size=" + branchCount).items("data.items")
 
         chapterItems.map { it.toSChapter() }
     }
