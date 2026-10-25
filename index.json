@@ -912,10 +912,10 @@
   {
     "name": "Tomilo-lib",
     "pkg": "eu.kanade.tachiyomi.extension.ru.tomilolib",
-    "apk": "tachiyomi-ru.tomilolib-v1.4.4.apk",
+    "apk": "tachiyomi-ru.tomilolib-v1.4.5.apk",
     "lang": "ru",
-    "code": 104004,
-    "version": "1.4.4",
+    "code": 104005,
+    "version": "1.4.5",
     "nsfw": 0,
     "sources": [
       {
