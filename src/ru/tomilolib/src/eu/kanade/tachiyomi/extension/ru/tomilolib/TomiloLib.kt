@@ -106,11 +106,14 @@ class TomiloLib(
         else -> ""
     }
 
-    private fun String.absoluteUrl(): String {
+    private fun String.absoluteUrl(useProxy: Boolean = true): String {
         if (isEmpty()) return ""
         var url = if (startsWith("http")) this else MEDIA_BASE + (if (startsWith("/")) this else "/" + this)
         if (MEDIA_STRIP.isNotEmpty() && url.startsWith(MEDIA_BASE + MEDIA_STRIP)) {
             url = MEDIA_BASE + url.removePrefix(MEDIA_BASE + MEDIA_STRIP)
+        }
+        if (useProxy && MEDIA_PROXY.isNotEmpty()) {
+            url = MEDIA_PROXY.replace("{url}", java.net.URLEncoder.encode(url, "UTF-8"))
         }
         return url
     }
@@ -198,7 +201,7 @@ class TomiloLib(
                 is GenreFilter -> {
                     filter.state
                         .filter { it.state }
-                        .forEach { builder.addQueryParameter(GENRE_PARAM, it.id.lowercase()) }
+                        .forEach { builder.addQueryParameter(GENRE_PARAM, it.id) }
                 }
                 else -> {}
             }
@@ -263,7 +266,7 @@ class TomiloLib(
         .parseAs<JsonElement>(json)
         .items("data.pages")
         .mapIndexed { index, item ->
-            Page(index, imageUrl = item.asText().absoluteUrl())
+            Page(index, imageUrl = item.asText().absoluteUrl(useProxy = false))
         }
 
     override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
@@ -336,31 +339,150 @@ class TomiloLib(
         Filter.Group<Genre>(
             "Жанры",
             listOf(
-                Genre("Action", "391b0423-d847-456f-aff0-8b0cfc03066b"),
-                Genre("Adventure", "87cc87cd-a395-47af-b27a-93258283bbc6"),
-                Genre("Boys' Love", "5920b825-4181-4a17-beeb-9918b0ff7a30"),
-                Genre("Comedy", "4d32cc48-9f00-4cca-9b5a-a839f0764984"),
-                Genre("Crime", "5ca48985-9a9d-4bd8-be29-80dc0303db72"),
-                Genre("Drama", "b9af3a63-f058-46de-a9a0-e0c13906197a"),
-                Genre("Fantasy", "cdc58593-87dd-415e-bbc0-2ec27bf404cc"),
-                Genre("Girls' Love", "a3c67850-4684-404e-9b7f-c69850ee5da6"),
-                Genre("Historical", "33771934-028e-4cb3-8744-691e866a923e"),
-                Genre("Horror", "cdad7e68-1419-41dd-bdce-27753074a640"),
-                Genre("Isekai", "ace04997-f6bd-436e-b261-779182193d3d"),
-                Genre("Magical Girls", "81c836c9-914a-4eca-981a-560dad663e73"),
-                Genre("Mecha", "50880a9d-5440-4732-9afb-8f457127e836"),
-                Genre("Medical", "c8cbe35b-1b2b-4a3f-9c37-db84c4514856"),
-                Genre("Mystery", "ee968100-4191-4968-93d3-f82d72be7e46"),
-                Genre("Philosophical", "b1e97889-25b4-4258-b28b-cd7f4d28ea9b"),
-                Genre("Psychological", "3b60b75c-a2d7-4860-ab56-05f391bb889c"),
-                Genre("Romance", "423e2eae-a7a2-4a8b-ac03-a8351462d71d"),
-                Genre("Sci-Fi", "256c8bd9-4904-4360-bf4f-508a76d67183"),
-                Genre("Slice of Life", "e5301a23-ebd9-49dd-a0cb-2add944c7fe9"),
-                Genre("Sports", "69964a64-2f90-4d33-beeb-f3ed2875eb4c"),
-                Genre("Superhero", "7064a261-a137-4d3a-8848-2d385de3a99c"),
-                Genre("Thriller", "07251805-a27e-4d59-b488-f0bfbec15168"),
-                Genre("Tragedy", "f8f62932-27da-4fe4-8ee1-6779a8c5edba"),
-                Genre("Wuxia", "acc803a4-c95a-4c22-86fc-eb6b582d82a2"),
+                Genre("Азартные игры", "Азартные игры"),
+                Genre("Алхимия", "Алхимия"),
+                Genre("Альтернативное настоящее", "Альтернативное настоящее"),
+                Genre("Амнезия / Потеря памяти", "Амнезия / Потеря памяти"),
+                Genre("Ангелы", "Ангелы"),
+                Genre("Антигерой", "Антигерой"),
+                Genre("Апокалиптический", "Апокалиптический"),
+                Genre("Аристократия", "Аристократия"),
+                Genre("Армия", "Армия"),
+                Genre("Артефакты", "Артефакты"),
+                Genre("Безумие", "Безумие"),
+                Genre("Бейсбол", "Бейсбол"),
+                Genre("Бог", "Бог"),
+                Genre("Боги", "Боги"),
+                Genre("Боевик", "Боевик"),
+                Genre("Боевое", "Боевое"),
+                Genre("Боевые искусства", "Боевые искусства"),
+                Genre("Бои на мечах", "Бои на мечах"),
+                Genre("Борьба за власть", "Борьба за власть"),
+                Genre("Будущее", "Будущее"),
+                Genre("Вампиры", "Вампиры"),
+                Genre("Ведьма", "Ведьма"),
+                Genre("Видеоигры", "Видеоигры"),
+                Genre("Виртуальная реальность", "Виртуальная реальность"),
+                Genre("Владыка демонов", "Владыка демонов"),
+                Genre("Военный", "Военный"),
+                Genre("Война", "Война"),
+                Genre("Волшебник / Маг", "Волшебник / Маг"),
+                Genre("Волшебные существа", "Волшебные существа"),
+                Genre("Всесильный главный герой", "Всесильный главный герой"),
+                Genre("Выживание", "Выживание"),
+                Genre("Гарем", "Гарем"),
+                Genre("Геймеры", "Геймеры"),
+                Genre("Героическое фэнтези", "Героическое фэнтези"),
+                Genre("Гильдии", "Гильдии"),
+                Genre("Главная героиня", "Главная героиня"),
+                Genre("Главный герой мужчина", "Главный герой мужчина"),
+                Genre("Гоблины", "Гоблины"),
+                Genre("Горничная", "Горничная"),
+                Genre("Городское фэнтези", "Городское фэнтези"),
+                Genre("Гурман", "Гурман"),
+                Genre("Гэг-юмор", "Гэг-юмор"),
+                Genre("Гяру", "Гяру"),
+                Genre("Девочки-волшебницы", "Девочки-волшебницы"),
+                Genre("Девушки-монстры", "Девушки-монстры"),
+                Genre("Демоны", "Демоны"),
+                Genre("Детектив", "Детектив"),
+                Genre("Дзёсей", "Дзёсей"),
+                Genre("Драконы", "Драконы"),
+                Genre("драма", "драма"),
+                Genre("Дружба", "Дружба"),
+                Genre("Жестокий мир", "Жестокий мир"),
+                Genre("Завоевание мира", "Завоевание мира"),
+                Genre("Зверолюди", "Зверолюди"),
+                Genre("Злодейка", "Злодейка"),
+                Genre("Зомби", "Зомби"),
+                Genre("Игровые элементы", "Игровые элементы"),
+                Genre("Игры", "Игры"),
+                Genre("Империи", "Империи"),
+                Genre("Исекай", "Исекай"),
+                Genre("Исторический", "Исторический"),
+                Genre("История", "История"),
+                Genre("Киберпанк", "Киберпанк"),
+                Genre("комедия", "комедия"),
+                Genre("Королевские дела", "Королевские дела"),
+                Genre("Космос", "Космос"),
+                Genre("Криминал / Преступники", "Криминал / Преступники"),
+                Genre("Кровь", "Кровь"),
+                Genre("Культивация", "Культивация"),
+                Genre("Легендарное оружие", "Легендарное оружие"),
+                Genre("Лоли", "Лоли"),
+                Genre("Магическая академия", "Магическая академия"),
+                Genre("Магические существа", "Магические существа"),
+                Genre("Магия", "Магия"),
+                Genre("Мафия", "Мафия"),
+                Genre("Медицина", "Медицина"),
+                Genre("Месть", "Месть"),
+                Genre("Меха", "Меха"),
+                Genre("Мистика", "Мистика"),
+                Genre("Монстры", "Монстры"),
+                Genre("Мурим", "Мурим"),
+                Genre("Навыки", "Навыки"),
+                Genre("Насилие", "Насилие"),
+                Genre("Научная фантастика", "Научная фантастика"),
+                Genre("Наёмники", "Наёмники"),
+                Genre("Нежить", "Нежить"),
+                Genre("Ниндзя", "Ниндзя"),
+                Genre("Обмен телами", "Обмен телами"),
+                Genre("Огнестрельное оружие", "Огнестрельное оружие"),
+                Genre("Отношения", "Отношения"),
+                Genre("Офисные работники", "Офисные работники"),
+                Genre("Пародия", "Пародия"),
+                Genre("Перерождение", "Перерождение"),
+                Genre("Подземелье", "Подземелье"),
+                Genre("Политика", "Политика"),
+                Genre("Полиция", "Полиция"),
+                Genre("Постапокалиптический", "Постапокалиптический"),
+                Genre("Психологическое", "Психологическое"),
+                Genre("Рабы", "Рабы"),
+                Genre("Ранги силы", "Ранги силы"),
+                Genre("Регрессия", "Регрессия"),
+                Genre("Реинкарнация", "Реинкарнация"),
+                Genre("Робот", "Робот"),
+                Genre("романтика", "романтика"),
+                Genre("Рыцари", "Рыцари"),
+                Genre("Самурай", "Самурай"),
+                Genre("Сверхъестественное", "Сверхъестественное"),
+                Genre("Секс", "Секс"),
+                Genre("Система", "Система"),
+                Genre("Скрытие личности", "Скрытие личности"),
+                Genre("Спасение мира", "Спасение мира"),
+                Genre("Спорт", "Спорт"),
+                Genre("Средневековье", "Средневековье"),
+                Genre("Старшая школа", "Старшая школа"),
+                Genre("Супер сила", "Супер сила"),
+                Genre("Супергерои", "Супергерои"),
+                Genre("Сэйнэн", "Сэйнэн"),
+                Genre("Сянься", "Сянься"),
+                Genre("Сёдзё", "Сёдзё"),
+                Genre("Сёнэн", "Сёнэн"),
+                Genre("Трагедия", "Трагедия"),
+                Genre("Триллер", "Триллер"),
+                Genre("Ужасы", "Ужасы"),
+                Genre("Умный главный герой", "Умный главный герой"),
+                Genre("Управление территорией", "Управление территорией"),
+                Genre("Учитель", "Учитель"),
+                Genre("Фантастика", "Фантастика"),
+                Genre("Фехтование", "Фехтование"),
+                Genre("Философия", "Философия"),
+                Genre("Фэнтези", "Фэнтези"),
+                Genre("Хоррор", "Хоррор"),
+                Genre("Цундэрэ", "Цундэрэ"),
+                Genre("Шантаж", "Шантаж"),
+                Genre("Школа", "Школа"),
+                Genre("Школьная жизнь", "Школьная жизнь"),
+                Genre("Шоу-бизнес", "Шоу-бизнес"),
+                Genre("Экшен", "Экшен"),
+                Genre("Элементы юмора", "Элементы юмора"),
+                Genre("Эльфы", "Эльфы"),
+                Genre("Эротика", "Эротика"),
+                Genre("этти", "этти"),
+                Genre("Якудза", "Якудза"),
+                Genre("Яндере", "Яндере"),
+                Genre("Япония", "Япония"),
             ),
         )
 
@@ -380,6 +502,7 @@ class TomiloLib(
         private const val API_BASE = "https://tomilo-lib.ru/api"
         private const val MEDIA_BASE = "https://cdn.tomilo-lib.ru"
         private const val MEDIA_STRIP = "/uploads"
+        private const val MEDIA_PROXY = "https://tomilo-lib.ru/_next/image?url={url}&w=720&q=82"
         private const val LIST_PATH = "/titles"
         private const val SIZE = 30
         private const val DEFAULT_SORT = "views"
