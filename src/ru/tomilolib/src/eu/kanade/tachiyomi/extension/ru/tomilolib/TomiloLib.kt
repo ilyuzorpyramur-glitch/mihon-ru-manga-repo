@@ -106,11 +106,13 @@ class TomiloLib(
         else -> ""
     }
 
-    private fun String.absoluteUrl(): String = when {
-        isEmpty() -> ""
-        startsWith("http") -> this
-        startsWith("/") -> MEDIA_BASE + this
-        else -> MEDIA_BASE + "/" + this
+    private fun String.absoluteUrl(): String {
+        if (isEmpty()) return ""
+        var url = if (startsWith("http")) this else MEDIA_BASE + (if (startsWith("/")) this else "/" + this)
+        if (MEDIA_STRIP.isNotEmpty() && url.startsWith(MEDIA_BASE + MEDIA_STRIP)) {
+            url = MEDIA_BASE + url.removePrefix(MEDIA_BASE + MEDIA_STRIP)
+        }
+        return url
     }
 
     // ============================== Настройки ==============================
@@ -196,7 +198,7 @@ class TomiloLib(
                 is GenreFilter -> {
                     filter.state
                         .filter { it.state }
-                        .forEach { builder.addQueryParameter(GENRE_PARAM, it.id) }
+                        .forEach { builder.addQueryParameter(GENRE_PARAM, it.id.lowercase()) }
                 }
                 else -> {}
             }
@@ -377,6 +379,7 @@ class TomiloLib(
     companion object {
         private const val API_BASE = "https://tomilo-lib.ru/api"
         private const val MEDIA_BASE = "https://tomilolib.s3.regru.cloud"
+        private const val MEDIA_STRIP = "/uploads"
         private const val LIST_PATH = "/titles"
         private const val SIZE = 30
         private const val DEFAULT_SORT = "views"

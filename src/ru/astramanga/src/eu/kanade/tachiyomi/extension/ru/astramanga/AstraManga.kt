@@ -1,8 +1,6 @@
 package ru.astramanga
 
-import androidx.preference.PreferenceScreen
 import eu.kanade.tachiyomi.network.GET
-import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
@@ -12,7 +10,6 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
 import keiyoushi.network.rateLimit
-import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -39,8 +36,7 @@ class AstraManga(
     override val baseUrl: String,
     override val lang: String,
     override val id: Long,
-) : HttpSource(),
-    ConfigurableSource {
+) : HttpSource() {
     override val supportsLatest = true
 
     private val json =
@@ -48,8 +44,6 @@ class AstraManga(
             ignoreUnknownKeys = true
             isLenient = true
         }
-
-    private val preferences by getPreferencesLazy()
 
     override val client: OkHttpClient =
         network.client
@@ -105,15 +99,14 @@ class AstraManga(
         else -> ""
     }
 
-    private fun String.absoluteUrl(): String = when {
-        isEmpty() -> ""
-        startsWith("http") -> this
-        startsWith("/") -> MEDIA_BASE + this
-        else -> MEDIA_BASE + "/" + this
+    private fun String.absoluteUrl(): String {
+        if (isEmpty()) return ""
+        var url = if (startsWith("http")) this else MEDIA_BASE + (if (startsWith("/")) this else "/" + this)
+        if (MEDIA_STRIP.isNotEmpty() && url.startsWith(MEDIA_BASE + MEDIA_STRIP)) {
+            url = MEDIA_BASE + url.removePrefix(MEDIA_BASE + MEDIA_STRIP)
+        }
+        return url
     }
-
-    override fun setupPreferenceScreen(screen: PreferenceScreen) = Unit
-
     // ============================== Каталог ==============================
 
     private fun catalogUrl(page: Int): HttpUrl = (API_BASE + LIST_PATH)
@@ -208,19 +201,23 @@ class AstraManga(
 
     override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> = Observable.fromCallable {
         val step1 = getJson(API_BASE + STEP1_PATH.replace("{id}", manga.url))
-        val step1Items = step1.items("data.branches")
-        val picked1 = step1Items.firstOrNull { it.flag("is_main") } ?: step1Items.maxByOrNull { it.number("count_chapters") }
-        val branchId = picked1?.text("id") ?: ""
-        val branchCount = picked1?.text("count_chapters") ?: ""
+        val titleId = step1.text("data.id")
+
+        val step2 = getJson(API_BASE + STEP2_PATH.replace("{title_id}", titleId).replace("{id}", manga.url))
+        val step2Items = step2.items("data.branches")
+        val picked2 = step2Items.firstOrNull { it.flag("is_main") } ?: step2Items.maxByOrNull { it.number("count_chapters") }
+        val branchId = picked2?.text("id") ?: ""
+        val branchCount = picked2?.text("count_chapters") ?: ""
 
         val chapterItems =
             getJson(
                 API_BASE +
                     CHAPTERS_PATH
                         .replace(
-                            "{branch_id}",
-                            branchId,
-                        ).replace("{branch_count}", branchCount)
+                            "{title_id}",
+                            titleId,
+                        ).replace("{branch_id}", branchId)
+                        .replace("{branch_count}", branchCount)
                         .replace("{id}", manga.url) +
                     "?page_size=" +
                     branchCount,
@@ -253,8 +250,8 @@ class AstraManga(
         thumbnail_url = item.text("cover_image").absoluteUrl()
         author = item.text("").takeIf { it.isNotEmpty() }
         artist = item.text("").takeIf { it.isNotEmpty() }
-        description = item.text("synopsis")
-        genre = item.items("genres").joinToString(", ") { it.asText() }
+        description = item.text("description").ifBlank { item.text("synopsis") }
+        genre = item.items("genres").joinToString(", ") { it.text("name") }
         status = item.text("status").toSMangaStatus()
         initialized = false
     }
@@ -349,6 +346,7 @@ class AstraManga(
     companion object {
         private const val API_BASE = "https://api.astramanga.org/api/v1"
         private const val MEDIA_BASE = "https://astramanga.org/media"
+        private const val MEDIA_STRIP = ""
         private const val LIST_PATH = "/search"
         private const val SIZE = 30
         private const val DEFAULT_SORT = "-popularity"
@@ -356,7 +354,8 @@ class AstraManga(
         private const val TOTAL_PAGES_PATH = "data.total_pages"
         private const val CURRENT_PAGE_PATH = "data.current_page"
         private const val DETAILS_PATH = "/titles/{id}"
-        private const val STEP1_PATH = "/titles/{id}/branches"
+        private const val STEP1_PATH = "/titles/{id}"
+        private const val STEP2_PATH = "/titles/{title_id}/branches"
         private const val CHAPTERS_PATH = "/branches/{branch_id}/chapters"
         private const val PAGES_PATH = "/chapters/{chapter}/pages"
         private const val GENRE_PARAM = "genres"
