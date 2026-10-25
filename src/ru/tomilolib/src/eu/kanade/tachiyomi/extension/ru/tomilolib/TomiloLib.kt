@@ -502,7 +502,7 @@ class TomiloLib(
         private const val API_BASE = "https://tomilo-lib.ru/api"
         private const val MEDIA_BASE = "https://cdn.tomilo-lib.ru"
         private const val MEDIA_STRIP = "/uploads"
-        private const val MEDIA_PROXY = "https://tomilo-lib.ru/_next/image?url={url}&w=720&q=82"
+        private const val MEDIA_PROXY = "https://tomilo-lib.ru/_next/image?url={url}&w=640&q=82"
         private const val LIST_PATH = "/titles"
         private const val SIZE = 30
         private const val DEFAULT_SORT = "views"
