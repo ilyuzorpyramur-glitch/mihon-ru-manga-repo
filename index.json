@@ -82,10 +82,10 @@
   {
     "name": "AstraManga",
     "pkg": "eu.kanade.tachiyomi.extension.ru.astramanga",
-    "apk": "tachiyomi-ru.astramanga-v1.4.1.apk",
+    "apk": "tachiyomi-ru.astramanga-v1.4.2.apk",
     "lang": "ru",
-    "code": 104001,
-    "version": "1.4.1",
+    "code": 104002,
+    "version": "1.4.2",
     "nsfw": 0,
     "sources": [
       {
@@ -912,10 +912,10 @@
   {
     "name": "Tomilo-lib",
     "pkg": "eu.kanade.tachiyomi.extension.ru.tomilolib",
-    "apk": "tachiyomi-ru.tomilolib-v1.4.1.apk",
+    "apk": "tachiyomi-ru.tomilolib-v1.4.2.apk",
     "lang": "ru",
-    "code": 104001,
-    "version": "1.4.1",
+    "code": 104002,
+    "version": "1.4.2",
     "nsfw": 0,
     "sources": [
       {
