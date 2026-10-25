@@ -43,33 +43,33 @@ class AstraManga(
     override val id: Long,
 ) : HttpSource(),
     ConfigurableSource {
-
     override val supportsLatest = true
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     private val preferences by getPreferencesLazy()
 
-    override val client: OkHttpClient = network.client.newBuilder()
-        .connectTimeout(30.seconds)
-        .readTimeout(60.seconds)
-        .rateLimit(2, 1.seconds)
-        .build()
+    override val client: OkHttpClient =
+        network.client
+            .newBuilder()
+            .connectTimeout(30.seconds)
+            .readTimeout(60.seconds)
+            .rateLimit(2, 1.seconds)
+            .build()
 
     override fun headersBuilder() = Headers.Builder().apply {
         add("Referer", "$baseUrl/")
         add("User-Agent", "Mozilla/5.0 (Linux; Android 14) AstraManga/1.0")
         add("Accept", "application/json")
-
     }
 
     // ================================ JSON ==================================
 
-    private fun getJson(url: HttpUrl): JsonElement =
-        client.newCall(GET(url, headers)).execute().parseAs<JsonElement>(json)
+    private fun getJson(url: HttpUrl): JsonElement = client.newCall(GET(url, headers)).execute().parseAs<JsonElement>(json)
 
     private fun getJson(url: String): JsonElement = getJson(url.toHttpUrl())
 
@@ -99,8 +99,7 @@ class AstraManga(
 
     private fun JsonElement.flag(path: String): Boolean = text(path) == "true" || text(path) == "1"
 
-    private fun JsonElement.items(path: String): List<JsonElement> =
-        (at(path) as? JsonArray)?.toList() ?: emptyList()
+    private fun JsonElement.items(path: String): List<JsonElement> = (at(path) as? JsonArray)?.toList() ?: emptyList()
 
     private fun JsonElement.asText(): String = when (this) {
         is JsonNull -> ""
@@ -114,23 +113,26 @@ class AstraManga(
         startsWith("/") -> MEDIA_BASE + this
         else -> MEDIA_BASE + "/" + this
     }
+
     override fun setupPreferenceScreen(screen: PreferenceScreen) = Unit
 
     // ============================== Каталог ==============================
 
-    private fun catalogUrl(page: Int): HttpUrl =
-        (API_BASE + LIST_PATH).toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("page_size", SIZE.toString())
-            .addQueryParameter("sort", DEFAULT_SORT)
-            .build()
+    private fun catalogUrl(page: Int): HttpUrl = (API_BASE + LIST_PATH)
+        .toHttpUrl()
+        .newBuilder()
+        .addQueryParameter("page", page.toString())
+        .addQueryParameter("page_size", SIZE.toString())
+        .addQueryParameter("sort", DEFAULT_SORT)
+        .build()
 
-    private fun latestUrl(page: Int): HttpUrl =
-        (API_BASE + LIST_PATH).toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("page_size", SIZE.toString())
-            .addQueryParameter("sort", LATEST_SORT)
-            .build()
+    private fun latestUrl(page: Int): HttpUrl = (API_BASE + LIST_PATH)
+        .toHttpUrl()
+        .newBuilder()
+        .addQueryParameter("page", page.toString())
+        .addQueryParameter("page_size", SIZE.toString())
+        .addQueryParameter("sort", LATEST_SORT)
+        .build()
 
     override fun popularMangaRequest(page: Int): Request = GET(catalogUrl(page), headers)
 
@@ -140,23 +142,41 @@ class AstraManga(
 
     override fun latestUpdatesParse(response: Response): MangasPage = parseList(response)
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+    override fun searchMangaRequest(
+        page: Int,
+        query: String,
+        filters: FilterList,
+    ): Request {
         var sort = DEFAULT_SORT
-        val builder = (API_BASE + LIST_PATH).toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("page_size", SIZE.toString())
+        val builder =
+            (API_BASE + LIST_PATH)
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("page", page.toString())
+                .addQueryParameter("page_size", SIZE.toString())
 
         if (query.isNotBlank()) builder.addQueryParameter("query", query.trim())
 
         filters.forEach { filter ->
             when (filter) {
-                is TypeFilter -> filter.selected.takeIf { it.isNotEmpty() }
-                    ?.let { builder.addQueryParameter("type", it) }
-                is StatusFilter -> filter.selected.takeIf { it.isNotEmpty() }
-                    ?.let { builder.addQueryParameter("status", it) }
-                is SortFilter -> sort = filter.selected
-                is GenreFilter -> filter.state.filter { it.state }
-                    .forEach { builder.addQueryParameter(GENRE_PARAM, it.id) }
+                is TypeFilter -> {
+                    filter.selected
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { builder.addQueryParameter("type", it) }
+                }
+                is StatusFilter -> {
+                    filter.selected
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { builder.addQueryParameter("status", it) }
+                }
+                is SortFilter -> {
+                    sort = filter.selected
+                }
+                is GenreFilter -> {
+                    filter.state
+                        .filter { it.state }
+                        .forEach { builder.addQueryParameter(GENRE_PARAM, it.id) }
+                }
                 else -> {}
             }
         }
@@ -167,16 +187,16 @@ class AstraManga(
     private fun parseList(response: Response): MangasPage {
         val root = response.parseAs<JsonElement>(json)
         val items = root.items("data.titles")
-        val mangas = items.mapNotNull { item ->
-            item.toSManga()
-        }
+        val mangas =
+            items.mapNotNull { item ->
+                item.toSManga()
+            }
         return MangasPage(mangas, root.number("data.current_page") < root.number("data.total_pages"))
     }
 
     // =============================== Детали ===============================
 
-    override fun mangaDetailsRequest(manga: SManga): Request =
-        GET(API_BASE + DETAILS_PATH.replace("{id}", manga.url), headers)
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(API_BASE + DETAILS_PATH.replace("{id}", manga.url), headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val root = response.parseAs<JsonElement>(json)
@@ -193,7 +213,18 @@ class AstraManga(
         val branchId = picked1?.text("id") ?: ""
         val branchCount = picked1?.text("count_chapters") ?: ""
 
-        val chapterItems = getJson(API_BASE + CHAPTERS_PATH.replace("{branch_id}", branchId).replace("{branch_count}", branchCount).replace("{id}", manga.url) + "?page_size=" + branchCount).items("data.items")
+        val chapterItems =
+            getJson(
+                API_BASE +
+                    CHAPTERS_PATH
+                        .replace(
+                            "{branch_id}",
+                            branchId,
+                        ).replace("{branch_count}", branchCount)
+                        .replace("{id}", manga.url) +
+                    "?page_size=" +
+                    branchCount,
+            ).items("data.items")
 
         chapterItems.map { it.toSChapter() }
     }
@@ -202,14 +233,14 @@ class AstraManga(
 
     // =============================== Страницы ===============================
 
-    override fun pageListRequest(chapter: SChapter): Request =
-        GET(API_BASE + PAGES_PATH.replace("{chapter}", chapter.url), headers)
+    override fun pageListRequest(chapter: SChapter): Request = GET(API_BASE + PAGES_PATH.replace("{chapter}", chapter.url), headers)
 
-    override fun pageListParse(response: Response): List<Page> =
-        response.parseAs<JsonElement>(json).items("data.pages")
-            .mapIndexed { index, item ->
-                Page(index, imageUrl = item.text("image_url").absoluteUrl())
-            }
+    override fun pageListParse(response: Response): List<Page> = response
+        .parseAs<JsonElement>(json)
+        .items("data.pages")
+        .mapIndexed { index, item ->
+            Page(index, imageUrl = item.text("image_url").absoluteUrl())
+        }
 
     override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
 
@@ -238,9 +269,10 @@ class AstraManga(
     private fun JsonElement.toSChapter(): SChapter = SChapter.create().apply {
         val item = this@toSChapter
         url = item.text("id")
-        name = item.text("name").ifBlank {
-            "Глава " + item.text("number").removeSuffix(".0")
-        }
+        name =
+            item.text("name").ifBlank {
+                "Глава " + item.text("number").removeSuffix(".0")
+            }
         chapter_number = item.decimal("number").toFloat()
         date_upload = item.text("").toEpochMillis()
     }
@@ -302,7 +334,10 @@ class AstraManga(
             ),
         )
 
-    private class Genre(name: String, val id: String) : Filter.CheckBox(name)
+    private class Genre(
+        name: String,
+        val id: String,
+    ) : Filter.CheckBox(name)
 
     override fun getFilterList() = FilterList(
         SortFilter(),
@@ -325,6 +360,5 @@ class AstraManga(
         private const val CHAPTERS_PATH = "/branches/{branch_id}/chapters"
         private const val PAGES_PATH = "/chapters/{chapter}/pages"
         private const val GENRE_PARAM = "genres"
-
     }
 }

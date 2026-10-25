@@ -44,33 +44,33 @@ class TomiloLib(
     override val id: Long,
 ) : HttpSource(),
     ConfigurableSource {
-
     override val supportsLatest = true
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     private val preferences by getPreferencesLazy()
 
-    override val client: OkHttpClient = network.client.newBuilder()
-        .connectTimeout(30.seconds)
-        .readTimeout(60.seconds)
-        .rateLimit(4, 1.seconds)
-        .build()
+    override val client: OkHttpClient =
+        network.client
+            .newBuilder()
+            .connectTimeout(30.seconds)
+            .readTimeout(60.seconds)
+            .rateLimit(4, 1.seconds)
+            .build()
 
     override fun headersBuilder() = Headers.Builder().apply {
         add("Referer", "$baseUrl/")
         add("User-Agent", "Mozilla/5.0 (Linux; Android 14) TomiloLib/1.0")
         add("Accept", "application/json")
-
     }
 
     // ================================ JSON ==================================
 
-    private fun getJson(url: HttpUrl): JsonElement =
-        client.newCall(GET(url, headers)).execute().parseAs<JsonElement>(json)
+    private fun getJson(url: HttpUrl): JsonElement = client.newCall(GET(url, headers)).execute().parseAs<JsonElement>(json)
 
     private fun getJson(url: String): JsonElement = getJson(url.toHttpUrl())
 
@@ -100,8 +100,7 @@ class TomiloLib(
 
     private fun JsonElement.flag(path: String): Boolean = text(path) == "true" || text(path) == "1"
 
-    private fun JsonElement.items(path: String): List<JsonElement> =
-        (at(path) as? JsonArray)?.toList() ?: emptyList()
+    private fun JsonElement.items(path: String): List<JsonElement> = (at(path) as? JsonArray)?.toList() ?: emptyList()
 
     private fun JsonElement.asText(): String = when (this) {
         is JsonNull -> ""
@@ -115,43 +114,47 @@ class TomiloLib(
         startsWith("/") -> MEDIA_BASE + this
         else -> MEDIA_BASE + "/" + this
     }
+
     // ============================== Настройки ==============================
     private val showAdult get() = preferences.getBoolean("show_adult", false)
 
     private val hidePaid get() = preferences.getBoolean("hide_paid", true)
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        SwitchPreferenceCompat(screen.context).apply {
-            key = "show_adult"
-            title = "Показывать контент 18+"
-            setDefaultValue(false)
-        }.let(screen::addPreference)
+        SwitchPreferenceCompat(screen.context)
+            .apply {
+                key = "show_adult"
+                title = "Показывать контент 18+"
+                setDefaultValue(false)
+            }.let(screen::addPreference)
 
-        SwitchPreferenceCompat(screen.context).apply {
-            key = "hide_paid"
-            title = "Скрывать платные главы"
-            setDefaultValue(true)
-        }.let(screen::addPreference)
-
+        SwitchPreferenceCompat(screen.context)
+            .apply {
+                key = "hide_paid"
+                title = "Скрывать платные главы"
+                setDefaultValue(true)
+            }.let(screen::addPreference)
     }
 
     // ============================== Каталог ==============================
 
-    private fun catalogUrl(page: Int): HttpUrl =
-        (API_BASE + LIST_PATH).toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("limit", SIZE.toString())
-            .addQueryParameter("order", "desc")
-            .addQueryParameter("sortBy", DEFAULT_SORT)
-            .build()
+    private fun catalogUrl(page: Int): HttpUrl = (API_BASE + LIST_PATH)
+        .toHttpUrl()
+        .newBuilder()
+        .addQueryParameter("page", page.toString())
+        .addQueryParameter("limit", SIZE.toString())
+        .addQueryParameter("order", "desc")
+        .addQueryParameter("sortBy", DEFAULT_SORT)
+        .build()
 
-    private fun latestUrl(page: Int): HttpUrl =
-        (API_BASE + LIST_PATH).toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("limit", SIZE.toString())
-            .addQueryParameter("order", "desc")
-            .addQueryParameter("sortBy", LATEST_SORT)
-            .build()
+    private fun latestUrl(page: Int): HttpUrl = (API_BASE + LIST_PATH)
+        .toHttpUrl()
+        .newBuilder()
+        .addQueryParameter("page", page.toString())
+        .addQueryParameter("limit", SIZE.toString())
+        .addQueryParameter("order", "desc")
+        .addQueryParameter("sortBy", LATEST_SORT)
+        .build()
 
     override fun popularMangaRequest(page: Int): Request = GET(catalogUrl(page), headers)
 
@@ -161,24 +164,42 @@ class TomiloLib(
 
     override fun latestUpdatesParse(response: Response): MangasPage = parseList(response)
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+    override fun searchMangaRequest(
+        page: Int,
+        query: String,
+        filters: FilterList,
+    ): Request {
         var sort = DEFAULT_SORT
-        val builder = (API_BASE + LIST_PATH).toHttpUrl().newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("limit", SIZE.toString())
-            .addQueryParameter("order", "desc")
+        val builder =
+            (API_BASE + LIST_PATH)
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("page", page.toString())
+                .addQueryParameter("limit", SIZE.toString())
+                .addQueryParameter("order", "desc")
 
         if (query.isNotBlank()) builder.addQueryParameter("search", query.trim())
 
         filters.forEach { filter ->
             when (filter) {
-                is TypeFilter -> filter.selected.takeIf { it.isNotEmpty() }
-                    ?.let { builder.addQueryParameter("type", it) }
-                is StatusFilter -> filter.selected.takeIf { it.isNotEmpty() }
-                    ?.let { builder.addQueryParameter("status", it) }
-                is SortFilter -> sort = filter.selected
-                is GenreFilter -> filter.state.filter { it.state }
-                    .forEach { builder.addQueryParameter(GENRE_PARAM, it.id) }
+                is TypeFilter -> {
+                    filter.selected
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { builder.addQueryParameter("type", it) }
+                }
+                is StatusFilter -> {
+                    filter.selected
+                        .takeIf { it.isNotEmpty() }
+                        ?.let { builder.addQueryParameter("status", it) }
+                }
+                is SortFilter -> {
+                    sort = filter.selected
+                }
+                is GenreFilter -> {
+                    filter.state
+                        .filter { it.state }
+                        .forEach { builder.addQueryParameter(GENRE_PARAM, it.id) }
+                }
                 else -> {}
             }
         }
@@ -189,17 +210,17 @@ class TomiloLib(
     private fun parseList(response: Response): MangasPage {
         val root = response.parseAs<JsonElement>(json)
         val items = root.items("data.titles")
-        val mangas = items.mapNotNull { item ->
-            if (!showAdult && item.flag("isAdult")) return@mapNotNull null
-            item.toSManga()
-        }
+        val mangas =
+            items.mapNotNull { item ->
+                if (!showAdult && item.flag("isAdult")) return@mapNotNull null
+                item.toSManga()
+            }
         return MangasPage(mangas, root.number("data.pagination.page") < root.number("data.pagination.pages"))
     }
 
     // =============================== Детали ===============================
 
-    override fun mangaDetailsRequest(manga: SManga): Request =
-        GET(API_BASE + DETAILS_PATH.replace("{id}", manga.url), headers)
+    override fun mangaDetailsRequest(manga: SManga): Request = GET(API_BASE + DETAILS_PATH.replace("{id}", manga.url), headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
         val root = response.parseAs<JsonElement>(json)
@@ -214,16 +235,18 @@ class TomiloLib(
         var page = 1
         var totalPages = 1
         do {
-            val root = getJson(API_BASE + CHAPTERS_PATH.replace("{id}", manga.url) + "?titleId=" + manga.url + "&limit=500" + "&page=" + page)
+            val root =
+                getJson(API_BASE + CHAPTERS_PATH.replace("{id}", manga.url) + "?titleId=" + manga.url + "&limit=500" + "&page=" + page)
             chapterItems += root.items("data.chapters")
             totalPages = root.number("data.pagination.pages")
             page++
         } while (page <= totalPages)
 
-        val filtered = chapterItems.filterNot { item ->
-            hidePaid && item.flag("isPaid") &&
-                item.number("unlockPrice") > 0
-        }
+        val filtered =
+            chapterItems.filterNot { item ->
+                hidePaid && item.flag("isPaid") &&
+                    item.number("unlockPrice") > 0
+            }
 
         filtered.map { it.toSChapter() }
     }
@@ -232,14 +255,14 @@ class TomiloLib(
 
     // =============================== Страницы ===============================
 
-    override fun pageListRequest(chapter: SChapter): Request =
-        GET(API_BASE + PAGES_PATH.replace("{chapter}", chapter.url), headers)
+    override fun pageListRequest(chapter: SChapter): Request = GET(API_BASE + PAGES_PATH.replace("{chapter}", chapter.url), headers)
 
-    override fun pageListParse(response: Response): List<Page> =
-        response.parseAs<JsonElement>(json).items("data.pages")
-            .mapIndexed { index, item ->
-                Page(index, imageUrl = item.asText().absoluteUrl())
-            }
+    override fun pageListParse(response: Response): List<Page> = response
+        .parseAs<JsonElement>(json)
+        .items("data.pages")
+        .mapIndexed { index, item ->
+            Page(index, imageUrl = item.asText().absoluteUrl())
+        }
 
     override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
 
@@ -269,9 +292,10 @@ class TomiloLib(
     private fun JsonElement.toSChapter(): SChapter = SChapter.create().apply {
         val item = this@toSChapter
         url = item.text("_id")
-        name = item.text("name").ifBlank {
-            "Глава " + item.text("chapterNumber").removeSuffix(".0")
-        }
+        name =
+            item.text("name").ifBlank {
+                "Глава " + item.text("chapterNumber").removeSuffix(".0")
+            }
         chapter_number = item.decimal("chapterNumber").toFloat()
         date_upload = item.text("releaseDate").toEpochMillis()
     }
@@ -338,7 +362,10 @@ class TomiloLib(
             ),
         )
 
-    private class Genre(name: String, val id: String) : Filter.CheckBox(name)
+    private class Genre(
+        name: String,
+        val id: String,
+    ) : Filter.CheckBox(name)
 
     override fun getFilterList() = FilterList(
         SortFilter(),
@@ -360,6 +387,5 @@ class TomiloLib(
         private const val CHAPTERS_PATH = "/chapters"
         private const val PAGES_PATH = "/chapters/{chapter}"
         private const val GENRE_PARAM = "genres"
-
     }
 }
