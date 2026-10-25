@@ -33,8 +33,6 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Tomilo-lib (tomilo-lib.ru) — сгенерировано extension-forge.
- *
- * 
  */
 @Source
 class TomiloLib(
