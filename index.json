@@ -1003,10 +1003,10 @@
   {
     "name": "YagamiProject",
     "pkg": "eu.kanade.tachiyomi.extension.ru.yagamiproject",
-    "apk": "tachiyomi-ru.yagamiproject-v1.4.6.apk",
+    "apk": "tachiyomi-ru.yagamiproject-v1.4.7.apk",
     "lang": "ru",
-    "code": 104006,
-    "version": "1.4.6",
+    "code": 104007,
+    "version": "1.4.7",
     "nsfw": 0,
     "sources": [
       {
