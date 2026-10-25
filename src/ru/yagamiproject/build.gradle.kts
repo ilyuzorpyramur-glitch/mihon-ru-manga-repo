@@ -6,12 +6,13 @@ plugins {
 
 keiyoushi {
     name = "YagamiProject"
-    versionCode = 6
+    versionCode = 7
     contentWarning = ContentWarning.SAFE
     libVersion = "1.4"
 
     source {
-        lang = "ru"
         baseUrl = "https://read.yagami.me"
+        lang = "ru"
+        id = 5458965504724393093L
     }
 }
