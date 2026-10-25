@@ -32,9 +32,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * AstraManga (astramanga.org) — сгенерировано extension-forge.
- *
- * API без ключа. Главы по веткам перевода: главная ветка или самая большая. Жанры — /genres, фильтр по id.
- */
+API без ключа. Главы по веткам перевода: главная ветка или самая большая. Жанры — /genres, фильтр по id. */
 @Source
 class AstraManga(
     override val name: String,
@@ -183,6 +181,8 @@ class AstraManga(
         if (sort.isNotEmpty()) builder.addQueryParameter("sort", sort)
         return GET(builder.build(), headers)
     }
+
+    override fun searchMangaParse(response: Response): MangasPage = parseList(response)
 
     private fun parseList(response: Response): MangasPage {
         val root = response.parseAs<JsonElement>(json)

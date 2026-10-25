@@ -205,6 +205,8 @@ class TomiloLib(
         return GET(builder.build(), headers)
     }
 
+    override fun searchMangaParse(response: Response): MangasPage = parseList(response)
+
     private fun parseList(response: Response): MangasPage {
         val root = response.parseAs<JsonElement>(json)
         val items = root.items("data.titles")
