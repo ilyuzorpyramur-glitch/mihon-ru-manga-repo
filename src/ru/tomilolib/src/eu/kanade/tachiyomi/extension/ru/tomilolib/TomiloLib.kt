@@ -378,7 +378,7 @@ class TomiloLib(
 
     companion object {
         private const val API_BASE = "https://tomilo-lib.ru/api"
-        private const val MEDIA_BASE = "https://tomilolib.s3.regru.cloud"
+        private const val MEDIA_BASE = "https://cdn.tomilo-lib.ru"
         private const val MEDIA_STRIP = "/uploads"
         private const val LIST_PATH = "/titles"
         private const val SIZE = 30
