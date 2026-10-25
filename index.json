@@ -566,10 +566,10 @@
   {
     "name": "MangaLove",
     "pkg": "eu.kanade.tachiyomi.extension.ru.mangalove",
-    "apk": "tachiyomi-ru.mangalove-v1.4.2.apk",
+    "apk": "tachiyomi-ru.mangalove-v1.4.3.apk",
     "lang": "ru",
-    "code": 104002,
-    "version": "1.4.2",
+    "code": 104003,
+    "version": "1.4.3",
     "nsfw": 0,
     "sources": [
       {
