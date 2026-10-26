@@ -146,18 +146,14 @@ abstract class RuMix : KeiSource() {
     ): SManga = SManga.create().apply {
         url = manga.url
 
-        val rawTitle =
-            document.selectFirst(".item-title")?.text()
-                ?: document.selectFirst("h1")?.text().orEmpty()
+        // Основное название лежит в meta[itemprop=name]; h1.names содержит ещё и алиасы,
+        // а .item-title — это ячейка таблицы глав, а не заголовок.
+        val rawTitle = document.selectFirst("meta[itemprop=name]")?.attr("content")?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("h1.names span.name")?.text()?.trim()?.takeIf { it.isNotBlank() }
+            ?: manga.title
 
-        title =
-            rawTitle
-                .substringBefore("Другие имена")
-                .removePrefix("Манга")
-                .removePrefix("Манхва")
-                .removePrefix("Маньхуа")
-                .trim()
-                .ifBlank { manga.title }
+        title = rawTitle
 
         thumbnail_url = document
             .selectFirst("meta[property=og:image]")
