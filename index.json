@@ -634,17 +634,17 @@
   {
     "name": "MintManga",
     "pkg": "eu.kanade.tachiyomi.extension.ru.mintmanga",
-    "apk": "tachiyomi-ru.mintmanga-v1.6.90.apk",
+    "apk": "tachiyomi-ru.mintmanga-v1.6.91.apk",
     "lang": "ru",
-    "code": 106090,
-    "version": "1.6.90",
+    "code": 106091,
+    "version": "1.6.91",
     "nsfw": 0,
     "sources": [
       {
         "name": "MintManga",
         "lang": "ru",
         "id": "6",
-        "baseUrl": "https://mintmanga.one"
+        "baseUrl": "https://2.mintmanga.one"
       }
     ]
   },
