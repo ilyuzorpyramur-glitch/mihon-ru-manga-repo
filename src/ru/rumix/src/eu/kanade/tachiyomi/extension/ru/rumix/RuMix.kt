@@ -1,9 +1,5 @@
 package eu.kanade.tachiyomi.extension.ru.rumix
 
-import android.content.SharedPreferences
-import androidx.preference.ListPreference
-import androidx.preference.PreferenceScreen
-import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
@@ -16,25 +12,21 @@ import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
-import keiyoushi.utils.getPreferencesLazy
+import keiyoushi.utils.firstInstanceOrNull
 import keiyoushi.utils.parseAs
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
+import java.text.SimpleDateFormat
 import java.util.Locale
 
 @Source
-abstract class RuMix :
-    KeiSource(),
-    ConfigurableSource {
-    private val preferences: SharedPreferences by getPreferencesLazy()
-
+abstract class RuMix : KeiSource() {
     override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = apply {
         rateLimit(2)
     }
-
-    private fun defaultSort(): String = preferences.getString(PREF_SORT, SORT_RATING) ?: SORT_RATING
 
     // ───────────────────────────── Каталог ─────────────────────────────
 
@@ -42,34 +34,81 @@ abstract class RuMix :
         page: Int,
         query: String,
         sort: String,
-    ) = "$baseUrl/api/catalog/search"
-        .toHttpUrl()
-        .newBuilder()
-        .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
-        .addQueryParameter("limit", PAGE_SIZE.toString())
-        .addQueryParameter("sortType", sort)
-        .apply { if (query.isNotBlank()) addQueryParameter("q", query.trim()) }
-        .build()
+        filters: FilterList?,
+    ): HttpUrl {
+        val builder =
+            "$baseUrl/api/catalog/search"
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
+                .addQueryParameter("limit", PAGE_SIZE.toString())
+                .addQueryParameter("sortType", sort)
 
-    override suspend fun getPopularManga(page: Int): MangasPage = searchCatalog(page, "", defaultSort())
+        filters?.forEach { filter ->
+            when (filter) {
+                is SortFilter -> {
+                    builder.setQueryParameter("sortType", filter.selected())
+                }
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage = searchCatalog(page, "", SORT_DATE_UPDATE)
+                is GenreGroup -> {
+                    filter.state.forEach { genre ->
+                        when (genre.state) {
+                            Filter.TriState.STATE_INCLUDE -> {
+                                builder.addQueryParameter("includeElementIds", genre.id)
+                            }
+
+                            Filter.TriState.STATE_EXCLUDE -> {
+                                builder.addQueryParameter("excludeElementIds", genre.id)
+                            }
+                        }
+                    }
+                }
+
+                is YearGroup -> {
+                    val from =
+                        filter.state
+                            .firstInstanceOrNull<YearFrom>()
+                            ?.state
+                            ?.trim()
+                            .orEmpty()
+                    val to =
+                        filter.state
+                            .firstInstanceOrNull<YearTo>()
+                            ?.state
+                            ?.trim()
+                            .orEmpty()
+                    if (from.isNotEmpty() || to.isNotEmpty()) {
+                        builder.addQueryParameter("years", "${from.ifEmpty { "1900" }},${to.ifEmpty { "2100" }}")
+                    }
+                }
+            }
+        }
+
+        if (query.isNotBlank()) builder.addQueryParameter("q", query.trim())
+
+        return builder.build()
+    }
+
+    override suspend fun getPopularManga(page: Int): MangasPage = searchCatalog(page, "", SORT_RATING, null)
+
+    override suspend fun getLatestUpdates(page: Int): MangasPage = searchCatalog(page, "", SORT_DATE_UPDATE, null)
 
     override suspend fun getSearchMangaList(
         page: Int,
         query: String,
         filters: FilterList,
     ): MangasPage {
-        val sort = filters.filterIsInstance<SortFilter>().firstOrNull()?.selected() ?: defaultSort()
-        return searchCatalog(page, query, sort)
+        val sort = filters.filterIsInstance<SortFilter>().firstOrNull()?.selected() ?: SORT_RATING
+        return searchCatalog(page, query, sort, filters)
     }
 
     private suspend fun searchCatalog(
         page: Int,
         query: String,
         sort: String,
+        filters: FilterList?,
     ): MangasPage {
-        val response = client.get(catalogUrl(page, query, sort)).parseAs<CatalogResponse>()
+        val response = client.get(catalogUrl(page, query, sort, filters)).parseAs<CatalogResponse>()
         val mangas = response.list.mapNotNull { it.toSManga() }
         return MangasPage(mangas, response.offset + mangas.size < response.total)
     }
@@ -78,7 +117,7 @@ abstract class RuMix :
         val slug = elementId?.linkName?.takeIf { it.isNotBlank() } ?: return null
         return SManga.create().apply {
             url = "/$slug"
-            title = this@toSManga.name
+            title = name
             thumbnail_url = picUrl
         }
     }
@@ -122,7 +161,7 @@ abstract class RuMix :
             .selectFirst("meta[property=og:image]")
             ?.attr("content")
             ?.takeIf { it.isNotBlank() }
-            ?: document.selectFirst("img[data-pic-url], .item-poster img, .poster img")?.let {
+            ?: document.selectFirst("img[data-pic-url]")?.let {
                 it.absUrl("data-pic-url").ifBlank { it.absUrl("src") }
             }
             ?: manga.thumbnail_url
@@ -148,10 +187,11 @@ abstract class RuMix :
                 ?.attr("content")
                 ?.trim()
                 .orEmpty()
+
         status =
             when {
-                document.text().contains("Завершён", ignoreCase = true) -> SManga.COMPLETED
-                document.text().contains("Онгоинг", ignoreCase = true) -> SManga.ONGOING
+                document.selectFirst(".elem_status")?.text()?.contains("Заверш", true) == true -> SManga.COMPLETED
+                document.selectFirst(".elem_status")?.text()?.contains("Онгоинг", true) == true -> SManga.ONGOING
                 else -> SManga.UNKNOWN
             }
     }
@@ -163,7 +203,6 @@ abstract class RuMix :
         .select("a[href*=\"/vol\"]")
         .mapNotNull { it.toChapter(mangaUrl) }
         .distinctBy { it.url }
-        .reversed()
 
     private fun Element.toChapter(mangaUrl: String): SChapter? {
         val href = absUrl("href").ifBlank { attr("href") }
@@ -178,10 +217,7 @@ abstract class RuMix :
     }
 
     private fun parseDate(raw: String): Long = try {
-        java.text
-            .SimpleDateFormat("dd.MM.yyyy", Locale.ROOT)
-            .parse(raw)
-            ?.time ?: 0L
+        SimpleDateFormat("dd.MM.yyyy", Locale.ROOT).parse(raw)?.time ?: 0L
     } catch (_: Exception) {
         0L
     }
@@ -193,12 +229,12 @@ abstract class RuMix :
 
         val images =
             document
-                .select("img[data-pic-url], img[data-original]")
+                .select("#mangaBox img[data-original], #mangaBox img[data-pic-url], img[data-page]")
                 .map { element ->
                     element.absUrl("data-pic-url").ifBlank {
                         element.absUrl("data-original").ifBlank { element.absUrl("src") }
                     }
-                }.filter { it.isNotBlank() && it.contains("/pics/") }
+                }.filter { it.isNotBlank() && PAGE_HOST_REGEX.containsMatchIn(it) }
                 .distinct()
 
         return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
@@ -210,40 +246,103 @@ abstract class RuMix :
 
     override fun getFilterList(data: kotlinx.serialization.json.JsonElement?): FilterList = FilterList(
         SortFilter(),
+        GenreGroup(),
+        YearGroup(),
     )
 
-    open class SortFilter :
+    class SortFilter :
         Filter.Select<String>(
             "Сортировка",
-            arrayOf("По рейтингу", "По популярности", "По дате обновления"),
+            arrayOf("По рейтингу", "По популярности", "По дате обновления", "По дате добавления"),
         ) {
         fun selected(): String = when (state) {
             1 -> SORT_POPULARITY
             2 -> SORT_DATE_UPDATE
+            3 -> SORT_DATE_CREATE
             else -> SORT_RATING
         }
     }
 
-    // ───────────────────────────── Настройки ─────────────────────────────
+    class GenreFilter(
+        name: String,
+        val id: String,
+    ) : Filter.TriState(name)
 
-    override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        ListPreference(screen.context)
-            .apply {
-                key = PREF_SORT
-                title = "Сортировка по умолчанию"
-                entries = arrayOf("По рейтингу", "По популярности", "По дате обновления")
-                entryValues = arrayOf(SORT_RATING, SORT_POPULARITY, SORT_DATE_UPDATE)
-                setDefaultValue(SORT_RATING)
-                summary = "%s"
-            }.also(screen::addPreference)
-    }
+    class GenreGroup : Filter.Group<GenreFilter>("Жанры", GENRES.map { GenreFilter(it.first, it.second) })
+
+    class YearFrom : Filter.Text("От")
+
+    class YearTo : Filter.Text("До")
+
+    class YearGroup : Filter.Group<Filter<String>>("Год выпуска", listOf(YearFrom(), YearTo()))
 
     companion object {
         private const val PAGE_SIZE = 50
-        private const val PREF_SORT = "pref_sort"
         private const val SORT_RATING = "RATING"
         private const val SORT_POPULARITY = "POPULARITY"
         private const val SORT_DATE_UPDATE = "DATE_UPDATE"
-        private val CHAPTER_REGEX = Regex("""/vol(\d+)/(\d+)""")
+        private const val SORT_DATE_CREATE = "DATE_CREATE"
+        private val CHAPTER_REGEX = Regex("/vol(\\d+)/(\\d+)")
+        private val PAGE_HOST_REGEX = Regex("static\\.rumix\\.me")
+
+        // Жанры и их идентификаторы взяты с /search/advanced (проверено: includeElementIds фильтрует).
+        private val GENRES =
+            listOf(
+                "арт" to "5685",
+                "боевик" to "2155",
+                "боевые искусства" to "2143",
+                "вампиры" to "2148",
+                "Вестерн" to "9150",
+                "гарем" to "2142",
+                "гендерная интрига" to "2156",
+                "героическое фэнтези" to "2146",
+                "детектив" to "2152",
+                "дзёсэй" to "2158",
+                "додзинси" to "2141",
+                "драма" to "2118",
+                "игра" to "2154",
+                "история" to "2119",
+                "киберпанк" to "8032",
+                "кодомо" to "2137",
+                "комедия" to "2136",
+                "махо-сёдзё" to "2147",
+                "меха" to "2126",
+                "мистика" to "9151",
+                "научная фантастика" to "2133",
+                "повседневность" to "2135",
+                "постапокалиптика" to "2151",
+                "приключения" to "2130",
+                "психология" to "2144",
+                "романтика" to "2121",
+                "самурайский боевик" to "2124",
+                "сверхъестественное" to "2159",
+                "сёдзё" to "2122",
+                "сёнэн" to "2134",
+                "спорт" to "2129",
+                "сэйнэн" to "2138",
+                "трагедия" to "2153",
+                "триллер" to "2150",
+                "ужасы" to "2125",
+                "Фантастика" to "9153",
+                "фэнтези" to "2131",
+                "школа" to "2127",
+                "этти" to "2149",
+                "BD" to "9142",
+                "В цвете" to "7290",
+                "Веб" to "2160",
+                "Ёнкома" to "2161",
+                "Комикс" to "3515",
+                "Манхва" to "3001",
+                "Маньхуа" to "3002",
+                "Ранобэ" to "8575",
+                "Сборник" to "2157",
+                "0+" to "9154",
+                "12+" to "9156",
+                "16+" to "9139",
+                "18+, запрещено для детей" to "9145",
+                "6+" to "9155",
+                "PG" to "6179",
+                "PG-13" to "6181",
+            )
     }
 }
