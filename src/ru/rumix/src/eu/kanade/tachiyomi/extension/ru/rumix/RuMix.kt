@@ -160,7 +160,7 @@ abstract class RuMix :
         document: Document,
         mangaUrl: String,
     ): List<SChapter> = document
-        .select("a[href*=/vol]")
+        .select("a[href*=\"/vol\"]")
         .mapNotNull { it.toChapter(mangaUrl) }
         .distinctBy { it.url }
         .reversed()
