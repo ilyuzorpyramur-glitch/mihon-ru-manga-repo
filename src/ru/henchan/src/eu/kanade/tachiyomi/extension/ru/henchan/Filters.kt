@@ -4,12 +4,15 @@ import eu.kanade.tachiyomi.source.model.Filter
 
 class Genre(
     val id: String,
-    name: String = id.replace('_', ' ').replaceFirstChar {
-        if (it.isLowerCase()) it.titlecase() else it.toString()
-    },
+    name: String =
+        id.replace('_', ' ').replaceFirstChar {
+            if (it.isLowerCase()) it.titlecase() else it.toString()
+        },
 ) : Filter.TriState(name)
 
-class GenreList(genres: List<Genre>) : Filter.Group<Genre>("Тэги", genres)
+class GenreList(
+    genres: List<Genre>,
+) : Filter.Group<Genre>("Тэги", genres)
 
 class OrderBy :
     UriPartFilter(

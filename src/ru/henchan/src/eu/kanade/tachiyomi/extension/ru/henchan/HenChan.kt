@@ -24,18 +24,27 @@ import java.util.Locale
 
 @Source
 abstract class HenChan : MultiChan() {
+    // /mostfavorites отдаёт пустую страницу — популярное берём из ленты новинок
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/manga/newest?offset=${20 * (page - 1)}", headers)
 
     override fun latestUpdatesRequest(page: Int): Request = GET("$baseUrl/manga/newest?offset=${20 * (page - 1)}", headers)
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+    override fun searchMangaRequest(
+        page: Int,
+        query: String,
+        filters: FilterList,
+    ): Request {
         if (query.isNotEmpty()) {
-            val url = baseUrl.toHttpUrl().newBuilder()
-                .addQueryParameter("do", "search")
-                .addQueryParameter("subaction", "search")
-                .addQueryParameter("story", query)
-                .addQueryParameter("search_start", page.toString())
-                .build()
-                .toString()
+            val url =
+                baseUrl
+                    .toHttpUrl()
+                    .newBuilder()
+                    .addQueryParameter("do", "search")
+                    .addQueryParameter("subaction", "search")
+                    .addQueryParameter("story", query)
+                    .addQueryParameter("search_start", page.toString())
+                    .build()
+                    .toString()
             return GET(url, headers)
         }
 
@@ -53,13 +62,14 @@ abstract class HenChan : MultiChan() {
         }
 
         val orderBy = filterList.firstInstanceOrNull<OrderBy>()
-        val url = if (genres.isNotEmpty()) {
-            val order = orderBy?.toUriPartWithGenres() ?: ""
-            "$baseUrl/tags/${genres.dropLast(1)}&sort=manga$order?offset=${20 * (page - 1)}"
-        } else {
-            val order = orderBy?.toUriPartWithoutGenres() ?: ""
-            "$baseUrl/$order?offset=${20 * (page - 1)}"
-        }
+        val url =
+            if (genres.isNotEmpty()) {
+                val order = orderBy?.toUriPartWithGenres() ?: ""
+                "$baseUrl/tags/${genres.dropLast(1)}&sort=manga$order?offset=${20 * (page - 1)}"
+            } else {
+                val order = orderBy?.toUriPartWithoutGenres() ?: ""
+                "$baseUrl/$order?offset=${20 * (page - 1)}"
+            }
 
         return GET(url, headers)
     }
@@ -69,7 +79,8 @@ abstract class HenChan : MultiChan() {
     private fun String.getHQThumbnail(): String {
         val isExHenManga = this.contains("/manganew_thumbs_blur/")
         val regex = manganewThumbsRegex
-        return this.replace(regex, "showfull_retina/manga")
+        return this
+            .replace(regex, "showfull_retina/manga")
             .replace(
                 "_".plus(URL(baseUrl).host),
                 "_hentaichan.ru",
@@ -95,8 +106,10 @@ abstract class HenChan : MultiChan() {
         return manga
     }
 
-    override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> = client.newCall(chapterListRequest(manga))
-        .asObservable().doOnNext { response ->
+    override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> = client
+        .newCall(chapterListRequest(manga))
+        .asObservable()
+        .doOnNext { response ->
             if (!response.isSuccessful) {
                 response.close()
                 // Error message for exceeding last page
@@ -114,17 +127,18 @@ abstract class HenChan : MultiChan() {
                     throw Exception("HTTP error ${response.code}")
                 }
             }
-        }
-        .map { response ->
+        }.map { response ->
             chapterListParse(response)
         }
 
     override fun chapterListRequest(manga: SManga): Request {
-        val url = baseUrl + if (manga.thumbnail_url?.endsWith("#") == true) {
-            manga.url
-        } else {
-            manga.url.replace("/manga/", "/related/")
-        }
+        val url =
+            baseUrl +
+                if (manga.thumbnail_url?.endsWith("#") == true) {
+                    manga.url
+                } else {
+                    manga.url.replace("/manga/", "/related/")
+                }
         return GET(url, headers)
     }
 
@@ -151,10 +165,11 @@ abstract class HenChan : MultiChan() {
         if (relatedText.contains(" похожий на ")) {
             val chap = SChapter.create()
             chap.setUrlWithoutDomain(document.selectFirst("#left > div > a")?.attr("abs:href") ?: "")
-            chap.name = relatedText
-                .split(" похожий на ")[1]
-                .replace("\\\"", "\"")
-                .replace("\\'", "'")
+            chap.name =
+                relatedText
+                    .split(" похожий на ")[1]
+                    .replace("\\\"", "\"")
+                    .replace("\\'", "'")
             chap.chapter_number = 1F
             return listOf(chap)
         }
@@ -192,16 +207,21 @@ abstract class HenChan : MultiChan() {
         chapter.setUrlWithoutDomain(aElement?.attr("abs:href") ?: "")
         val chapterName = aElement?.attr("title") ?: ""
         chapter.name = chapterName
-        chapter.chapter_number = chapterNumberRegex.find(chapterName)?.groupValues?.get(2)?.toFloat() ?: -1F
+        chapter.chapter_number = chapterNumberRegex
+            .find(chapterName)
+            ?.groupValues
+            ?.get(2)
+            ?.toFloat() ?: -1F
         return chapter
     }
 
     override fun pageListRequest(chapter: SChapter): Request {
-        val url = if (chapter.url.contains("/manga/")) {
-            baseUrl + chapter.url.replace("/manga/", "/online/")
-        } else {
-            baseUrl + chapter.url
-        }
+        val url =
+            if (chapter.url.contains("/manga/")) {
+                baseUrl + chapter.url.replace("/manga/", "/online/")
+            } else {
+                baseUrl + chapter.url
+            }
         return GET(url, Headers.Builder().add("Accept", "image/webp,image/apng").build())
     }
 
@@ -210,9 +230,11 @@ abstract class HenChan : MultiChan() {
         val prefix = "fullimg\": ["
         val beginIndex = html.indexOf(prefix) + prefix.length
         val endIndex = html.indexOf("]", beginIndex)
-        val trimmedHtml = html.substring(beginIndex, endIndex)
-            .replace("\"", "")
-            .replace("\'", "")
+        val trimmedHtml =
+            html
+                .substring(beginIndex, endIndex)
+                .replace("\"", "")
+                .replace("\'", "")
 
         val pageUrls = trimmedHtml.split(", ")
         return pageUrls.mapIndexed { i, url -> Page(i, imageUrl = url) }

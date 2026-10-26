@@ -10,17 +10,26 @@ import okhttp3.Request
 
 @Source
 abstract class MangaChan : MultiChan() {
+    // /mostfavorites отдаёт 502 — берём ленту новых глав
+    override fun popularMangaRequest(page: Int): Request = GET("$baseUrl/manga/new?offset=${20 * (page - 1)}", headers)
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+    override fun searchMangaRequest(
+        page: Int,
+        query: String,
+        filters: FilterList,
+    ): Request {
         val pageNum = page.coerceAtLeast(1)
         if (query.isNotEmpty()) {
-            val url = baseUrl.toHttpUrl().newBuilder()
-                .addQueryParameter("do", "search")
-                .addQueryParameter("subaction", "search")
-                .addQueryParameter("story", query)
-                .addQueryParameter("search_start", pageNum.toString())
-                .build()
-                .toString()
+            val url =
+                baseUrl
+                    .toHttpUrl()
+                    .newBuilder()
+                    .addQueryParameter("do", "search")
+                    .addQueryParameter("subaction", "search")
+                    .addQueryParameter("story", query)
+                    .addQueryParameter("search_start", pageNum.toString())
+                    .build()
+                    .toString()
             return GET(url, headers)
         }
 
@@ -44,41 +53,46 @@ abstract class MangaChan : MultiChan() {
                         statusParam = false
                     }
                 }
-                is Status -> status = arrayOf("", "all_done", "end", "ongoing", "new_ch")[filter.state]
+                is Status -> {
+                    status = arrayOf("", "all_done", "end", "ongoing", "new_ch")[filter.state]
+                }
                 else -> {}
             }
         }
 
         val orderBy = filterList.firstInstanceOrNull<OrderBy>()
-        val url = if (genres.isNotEmpty()) {
-            val order = orderBy?.let {
-                if (it.state!!.ascending) {
-                    arrayOf("", "&n=favasc", "&n=abcdesc", "&n=chasc")[it.state!!.index]
-                } else {
-                    arrayOf("&n=dateasc", "&n=favdesc", "&n=abcasc", "&n=chdesc")[it.state!!.index]
-                }
-            } ?: ""
+        val url =
+            if (genres.isNotEmpty()) {
+                val order =
+                    orderBy?.let {
+                        if (it.state!!.ascending) {
+                            arrayOf("", "&n=favasc", "&n=abcdesc", "&n=chasc")[it.state!!.index]
+                        } else {
+                            arrayOf("&n=dateasc", "&n=favdesc", "&n=abcasc", "&n=chdesc")[it.state!!.index]
+                        }
+                    } ?: ""
 
-            if (statusParam) {
-                "$baseUrl/tags/${genres.dropLast(1)}$order?offset=${20 * (pageNum - 1)}&status=$status"
-            } else {
-                "$baseUrl/tags/$status/${genres.dropLast(1)}/$order?offset=${20 * (pageNum - 1)}"
-            }
-        } else {
-            val order = orderBy?.let {
-                if (it.state!!.ascending) {
-                    arrayOf("manga/new", "manga/new&n=favasc", "manga/new&n=abcdesc", "manga/new&n=chasc")[it.state!!.index]
+                if (statusParam) {
+                    "$baseUrl/tags/${genres.dropLast(1)}$order?offset=${20 * (pageNum - 1)}&status=$status"
                 } else {
-                    arrayOf("manga/new&n=dateasc", "mostfavorites", "catalog", "sortch")[it.state!!.index]
+                    "$baseUrl/tags/$status/${genres.dropLast(1)}/$order?offset=${20 * (pageNum - 1)}"
                 }
-            } ?: "manga/new"
-
-            if (statusParam) {
-                "$baseUrl/$order?offset=${20 * (pageNum - 1)}&status=$status"
             } else {
-                "$baseUrl/$order/$status?offset=${20 * (pageNum - 1)}"
+                val order =
+                    orderBy?.let {
+                        if (it.state!!.ascending) {
+                            arrayOf("manga/new", "manga/new&n=favasc", "manga/new&n=abcdesc", "manga/new&n=chasc")[it.state!!.index]
+                        } else {
+                            arrayOf("manga/new&n=dateasc", "mostfavorites", "catalog", "sortch")[it.state!!.index]
+                        }
+                    } ?: "manga/new"
+
+                if (statusParam) {
+                    "$baseUrl/$order?offset=${20 * (pageNum - 1)}&status=$status"
+                } else {
+                    "$baseUrl/$order/$status?offset=${20 * (pageNum - 1)}"
+                }
             }
-        }
 
         return GET(url, headers)
     }

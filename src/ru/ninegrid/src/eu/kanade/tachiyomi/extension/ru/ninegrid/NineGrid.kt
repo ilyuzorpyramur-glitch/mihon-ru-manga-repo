@@ -25,7 +25,6 @@ import java.util.Locale
 abstract class NineGrid :
     HttpSource(),
     ConfigurableSource {
-
     override val supportsLatest = true
 
     private val preferences = getPreferences()
@@ -46,11 +45,14 @@ abstract class NineGrid :
     // Popular
 
     override fun popularMangaRequest(page: Int): Request {
-        val url = "$apiBase/series".toHttpUrl().newBuilder()
-            .addQueryParameter("page", (page - 1).toString())
-            .addQueryParameter("size", "20")
-            .addQueryParameter("sort", "popular")
-            .build()
+        val url =
+            "$apiBase/series"
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("page", (page - 1).toString())
+                .addQueryParameter("size", "20")
+                .addQueryParameter("sort", "popular")
+                .build()
         return GET(url, headers)
     }
 
@@ -63,11 +65,14 @@ abstract class NineGrid :
     // Latest
 
     override fun latestUpdatesRequest(page: Int): Request {
-        val url = "$apiBase/series".toHttpUrl().newBuilder()
-            .addQueryParameter("page", (page - 1).toString())
-            .addQueryParameter("size", "20")
-            .addQueryParameter("sort", "latest")
-            .build()
+        val url =
+            "$apiBase/series"
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("page", (page - 1).toString())
+                .addQueryParameter("size", "20")
+                .addQueryParameter("sort", "latest")
+                .build()
         return GET(url, headers)
     }
 
@@ -80,22 +85,33 @@ abstract class NineGrid :
         query: String,
         filters: FilterList,
     ): Request {
-        val url = "$apiBase/series".toHttpUrl().newBuilder()
-            .addQueryParameter("page", (page - 1).toString())
-            .addQueryParameter("size", "20")
-            .addQueryParameter("q", query)
+        val url =
+            "$apiBase/series"
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("page", (page - 1).toString())
+                .addQueryParameter("size", "20")
+                .addQueryParameter("q", query)
 
         filters.forEach { filter ->
             when (filter) {
-                is SortFilter -> url.addQueryParameter("sort", filter.selected)
-                is PublisherFilter -> if (filter.state.isNotBlank()) {
-                    url.addQueryParameter("publisher", filter.state)
+                is SortFilter -> {
+                    url.addQueryParameter("sort", filter.selected)
                 }
-                is YearFilter -> if (filter.state.isNotBlank()) {
-                    url.addQueryParameter("year", filter.state)
+                is PublisherFilter -> {
+                    if (filter.state.isNotBlank()) {
+                        url.addQueryParameter("publisher", filter.state)
+                    }
                 }
-                is GenreFilter -> filter.state.filter { it.state }.forEach { genre ->
-                    url.addQueryParameter("genre", genre.name)
+                is YearFilter -> {
+                    if (filter.state.isNotBlank()) {
+                        url.addQueryParameter("year", filter.state)
+                    }
+                }
+                is GenreFilter -> {
+                    filter.state.filter { it.state }.forEach { genre ->
+                        url.addQueryParameter("genre", genre.name)
+                    }
                 }
                 else -> {}
             }
@@ -125,19 +141,22 @@ abstract class NineGrid :
 
         for (issue in data.issues) {
             for (t in issue.translations) {
-                val teamLabel = t.teamNames.takeIf { it.isNotEmpty() }
-                    ?.joinToString()
+                val teamLabel =
+                    t.teamNames
+                        .takeIf { it.isNotEmpty() }
+                        ?.joinToString()
 
                 chapters.add(
                     SChapter.create().apply {
                         url = "/translations/${t.id}/pages"
-                        name = buildString {
-                            append("#${issue.number}")
-                            if (!issue.name.isNullOrBlank()) append(" — ${issue.name}")
-                            if (issue.translations.size > 1 && teamLabel != null) {
-                                append(" [$teamLabel]")
+                        name =
+                            buildString {
+                                append("#${issue.number}")
+                                if (!issue.name.isNullOrBlank()) append(" — ${issue.name}")
+                                if (issue.translations.size > 1 && teamLabel != null) {
+                                    append(" [$teamLabel]")
+                                }
                             }
-                        }
                         chapter_number = issue.number
                             .replace(ANNUAL_REGEX, "1000.")
                             .toFloatOrNull() ?: -1f
@@ -174,12 +193,13 @@ abstract class NineGrid :
     // Preferences
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        EditTextPreference(screen.context).apply {
-            key = PREF_API_KEY
-            title = "API-ключ"
-            summary = "Для трекинга прогресса"
-            setDefaultValue("")
-        }.let(screen::addPreference)
+        EditTextPreference(screen.context)
+            .apply {
+                key = PREF_API_KEY
+                title = "API-ключ"
+                summary = "Для трекинга прогресса"
+                setDefaultValue("")
+            }.let(screen::addPreference)
     }
 
     companion object {

@@ -2,9 +2,14 @@ package eu.kanade.tachiyomi.extension.ru.mangachan
 
 import eu.kanade.tachiyomi.source.model.Filter
 
-class GenreList(genres: List<Genre>) : Filter.Group<Genre>("Тэги", genres)
+class GenreList(
+    genres: List<Genre>,
+) : Filter.Group<Genre>("Тэги", genres)
 
-class Genre(name: String, val id: String = name.replace(' ', '_')) : Filter.TriState(name)
+class Genre(
+    name: String,
+    val id: String = name.replace(' ', '_'),
+) : Filter.TriState(name)
 
 class Status : Filter.Select<String>("Статус", arrayOf("Все", "Перевод завершен", "Выпуск завершен", "Онгоинг", "Новые главы"))
 

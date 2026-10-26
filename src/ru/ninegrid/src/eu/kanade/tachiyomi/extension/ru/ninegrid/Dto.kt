@@ -18,19 +18,22 @@ class SeriesDto(
     val publisherName: String? = null,
     val genres: List<String> = emptyList(),
     val status: String? = null,
+    val coverImage: String? = null,
 ) {
     fun toSManga(apiBase: String): SManga = SManga.create().apply {
         url = id.toString()
         title = name
-        thumbnail_url = "$apiBase/series/${this@SeriesDto.id}/thumbnail"
+        thumbnail_url = coverImage?.takeIf { it.isNotBlank() }
+            ?: "$apiBase/series/${this@SeriesDto.id}/thumbnail"
         description = this@SeriesDto.description
         author = publisherName
         genre = genres.joinToString()
-        status = when (this@SeriesDto.status) {
-            "Continuing" -> SManga.ONGOING
-            "Ended" -> SManga.COMPLETED
-            else -> SManga.UNKNOWN
-        }
+        status =
+            when (this@SeriesDto.status) {
+                "Continuing" -> SManga.ONGOING
+                "Ended" -> SManga.COMPLETED
+                else -> SManga.UNKNOWN
+            }
     }
 }
 
