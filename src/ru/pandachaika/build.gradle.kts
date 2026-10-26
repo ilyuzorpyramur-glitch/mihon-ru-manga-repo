@@ -1,0 +1,25 @@
+import io.github.keiyoushi.gradle.api.ContentWarning
+
+plugins {
+    alias(kei.plugins.extension)
+}
+
+keiyoushi {
+    name = "PandaChaika"
+    versionCode = 5
+    contentWarning = ContentWarning.NSFW
+    libVersion = "1.4"
+
+    // Репозиторий русский: оставлены только ru и all (весь каталог).
+    listOf("ru").forEach {
+        source {
+            lang = it
+            baseUrl = "https://panda.chaika.moe"
+        }
+    }
+
+    deeplink {
+        host("panda.chaika.moe")
+        path("/archive/..*")
+    }
+}
