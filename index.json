@@ -136,6 +136,23 @@
     ]
   },
   {
+    "name": "E-Hentai",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.ehentai",
+    "apk": "tachiyomi-ru.ehentai-v1.6.1.apk",
+    "lang": "ru",
+    "code": 106001,
+    "version": "1.6.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "E-Hentai",
+        "lang": "ru",
+        "id": "2171445159732592630",
+        "baseUrl": "https://e-hentai.org"
+      }
+    ]
+  },
+  {
     "name": "GlobalComix",
     "pkg": "eu.kanade.tachiyomi.extension.ru.globalcomix",
     "apk": "tachiyomi-ru.globalcomix-v1.4.5.apk",
@@ -727,6 +744,23 @@
         "lang": "ru",
         "id": "5",
         "baseUrl": "https://a.zazaza.me"
+      }
+    ]
+  },
+  {
+    "name": "RuMix",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.rumix",
+    "apk": "tachiyomi-ru.rumix-v1.6.43.apk",
+    "lang": "ru",
+    "code": 106043,
+    "version": "1.6.43",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "RuMix",
+        "lang": "ru",
+        "id": "6651547640332983611",
+        "baseUrl": "https://rumix.me"
       }
     ]
   },
