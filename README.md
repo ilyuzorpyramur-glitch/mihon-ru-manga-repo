@@ -14,7 +14,7 @@
 
 ## ✨ Особенности
 
-- 🇷🇺 **30+ русских источников** — MangaChan, ReadManga, MintManga, Desu, MangaLib, Senkuro и другие
+- 🇷🇺 **58 источников** — MangaChan, ReadManga, MintManga, Desu, MangaLib, Senkuro и другие
 - 🎨 **Единый стиль иконок** — генерируются автоматически скриптом [`make-icons.py`](.github/scripts/make-icons.py)
 - 🔐 **Собственный ключ подписи** — стабильные обновления без переустановки
 - ⚙️ **Настройки в каждом расширении** — выбор качества изображений, язык, лимиты запросов
@@ -70,9 +70,11 @@ Acomics · AllHentai · AstraManga · ComX · Desu · HenChan · HentaiLib · In
 </details>
 
 <details>
-<summary><b>Мультиязычные источники (all)</b></summary>
+<summary><b>Мультиязычные сайты</b> (в репозитории оставлена только русская ветка)</summary>
 
-MangaDex · MangaPlus · Niadd · NovelCool · ComicFury · GlobalComix · XKCD · и другие 18+ галереи — см. [`src/all/`](src/all)
+MangaDex · MangaPlus · GlobalComix · NamiComi · XCOMIC · Niadd · NovelCool · ComicFury · XKCD · Manga Million
+и 18+ галереи (3Hentai, HentaiEnvy, HentaiEra, IMHentai, Simply Hentai, Nude-Moon…) — у каждого источника
+`lang = "ru"`, поэтому в приложении они показываются как русские и отдают русские переводы, если они есть на сайте.
 
 </details>
 
