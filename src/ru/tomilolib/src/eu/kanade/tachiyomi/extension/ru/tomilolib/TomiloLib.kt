@@ -62,7 +62,10 @@ class TomiloLib(
 
     override fun headersBuilder() = Headers.Builder().apply {
         add("Referer", "$baseUrl/")
-        add("User-Agent", "Mozilla/5.0 (Linux; Android 14) TomiloLib/1.0")
+        add(
+            "User-Agent",
+            "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36",
+        )
         add("Accept", "application/json")
     }
 
@@ -112,8 +115,15 @@ class TomiloLib(
         if (!url.startsWith("http")) {
             url = MEDIA_BASE + (if (url.startsWith("/")) url else "/" + url)
         }
-        if (MEDIA_STRIP.isNotEmpty() && url.startsWith(MEDIA_BASE + MEDIA_STRIP)) {
-            url = MEDIA_BASE + url.removePrefix(MEDIA_BASE + MEDIA_STRIP)
+        // CDN и сайт отдают файлы из корня бакета: /uploads/titles/.. -> /titles/..
+        if (MEDIA_STRIP.isNotEmpty()) {
+            for (host in MEDIA_HOSTS) {
+                val prefix = host + MEDIA_STRIP
+                if (url.startsWith("$prefix/")) {
+                    url = host + url.removePrefix(prefix)
+                    break
+                }
+            }
         }
         if (useProxy && MEDIA_PROXY.isNotEmpty()) {
             url = MEDIA_PROXY.replace("{url}", java.net.URLEncoder.encode(url, "UTF-8"))
@@ -504,8 +514,12 @@ class TomiloLib(
     companion object {
         private const val API_BASE = "https://tomilo-lib.ru/api"
         private const val MEDIA_BASE = "https://cdn.tomilo-lib.ru"
+        private val MEDIA_HOSTS = listOf(MEDIA_BASE, "https://tomilo-lib.ru")
         private const val MEDIA_STRIP = "/uploads"
-        private const val MEDIA_PROXY = "https://tomilo-lib.ru/_next/image?url={url}&w=384&q=75"
+        // Отключено: /_next/image — динамический оптимизатор Next.js, он режет обложки до 384px,
+        // отдаёт 400 на чужие хосты (S3) и отваливается при пачке параллельных запросов.
+        // Статический CDN отдаёт те же файлы оригинального размера без прокси.
+        private const val MEDIA_PROXY = ""
         private const val LIST_PATH = "/titles"
         private const val SIZE = 30
         private const val DEFAULT_SORT = "views"
