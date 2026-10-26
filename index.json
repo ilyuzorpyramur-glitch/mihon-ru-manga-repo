@@ -750,10 +750,10 @@
   {
     "name": "RuMix",
     "pkg": "eu.kanade.tachiyomi.extension.ru.rumix",
-    "apk": "tachiyomi-ru.rumix-v1.6.2.apk",
+    "apk": "tachiyomi-ru.rumix-v1.6.3.apk",
     "lang": "ru",
-    "code": 106002,
-    "version": "1.6.2",
+    "code": 106003,
+    "version": "1.6.3",
     "nsfw": 0,
     "sources": [
       {
