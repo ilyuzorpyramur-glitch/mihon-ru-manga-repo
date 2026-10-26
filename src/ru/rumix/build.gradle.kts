@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "RuMix"
-    versionCode = 4
+    versionCode = 6
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 

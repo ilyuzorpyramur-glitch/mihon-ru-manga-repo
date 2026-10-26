@@ -229,17 +229,17 @@ abstract class RuMix : KeiSource() {
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val document = client.get("$baseUrl${chapter.url}").asJsoup()
 
-        val images =
-            document
-                .select("#mangaBox img[data-original], #mangaBox img[data-pic-url], img[data-page]")
-                .map { element ->
-                    element.absUrl("data-pic-url").ifBlank {
-                        element.absUrl("data-original").ifBlank { element.absUrl("src") }
-                    }
-                }.filter { it.isNotBlank() && PAGE_HOST_REGEX.containsMatchIn(it) }
-                .distinct()
-
-        return images.mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
+        // Страницы ридера RuMix собирает JavaScript: в HTML лежат только обложки томов.
+        return document
+            .select("img[data-page]")
+            .mapNotNull { element ->
+                element
+                    .absUrl("data-original")
+                    .ifBlank { element.absUrl("data-pic-url") }
+                    .ifBlank { element.absUrl("src") }
+                    .takeIf { it.isNotBlank() }
+            }.distinct()
+            .mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
     }
 
     // ───────────────────────────── Фильтры ─────────────────────────────
@@ -285,7 +285,8 @@ abstract class RuMix : KeiSource() {
         private const val SORT_DATE_UPDATE = "DATE_UPDATE"
         private const val SORT_DATE_CREATE = "DATE_CREATE"
         private val CHAPTER_REGEX = Regex("/vol(\\d+)/(\\d+)")
-        private val PAGE_HOST_REGEX = Regex("static\\.rumix\\.me")
+        private val PAGE_URL_REGEX = Regex("https://static\\.rumix\\.me/uploads/pics/[^\"'\\\\\\s<>]+\\.(?:jpg|jpeg|png|webp)")
+        private val COVER_REGEX = Regex("_p\\.(?:jpg|jpeg|png)$")
 
         // Жанры и их идентификаторы взяты с /search/advanced (проверено: includeElementIds фильтрует).
         private val GENRES =

@@ -30,7 +30,6 @@ abstract class EHentai :
     private val preferences: SharedPreferences by getPreferencesLazy()
 
     override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = apply {
-        // У E-Hentai жёсткий лимит частоты запросов.
         rateLimit(2)
     }
 
@@ -47,7 +46,8 @@ abstract class EHentai :
 
     override suspend fun getPopularManga(page: Int): MangasPage = parseList(client.get("$baseUrl/popular?page=$page".toHttpUrl()).asJsoup())
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage = parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()).asJsoup())
+    override suspend fun getLatestUpdates(page: Int): MangasPage =
+        parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()).asJsoup())
 
     override suspend fun getSearchMangaList(
         page: Int,
@@ -60,20 +60,19 @@ abstract class EHentai :
                 .newBuilder()
                 .addQueryParameter("page", page.toString())
 
+        val tags = mutableListOf<String>()
         var excludedCategories = 0
-        var russianOnly = true
 
         filters.forEach { filter ->
             when (filter) {
-                is RussianOnlyFilter -> {
-                    russianOnly = filter.state != Filter.TriState.STATE_EXCLUDE
+                is CategoryGroup -> {
+                    excludedCategories = filter.state.filter { !it.state }.sumOf { it.bit }
                 }
 
-                is CategoryGroup -> {
-                    excludedCategories =
-                        filter.state
-                            .filter { !it.state }
-                            .sumOf { it.bit }
+                is GenreGroup -> {
+                    filter.state
+                        .filter { it.state == Filter.TriState.STATE_INCLUDE }
+                        .forEach { tags += it.query }
                 }
 
                 is MinRatingFilter -> {
@@ -109,13 +108,15 @@ abstract class EHentai :
             builder.addQueryParameter("f_cats", excludedCategories.toString())
         }
 
+        // Русский перевод включён всегда — отдельного переключателя не нужно.
         val terms =
             buildList {
-                if (russianOnly) add(LANGUAGE_TAG)
+                add(LANGUAGE_TAG)
+                tags.forEach { add(it) }
                 if (query.isNotBlank()) add(query.trim())
             }.joinToString(" ")
 
-        if (terms.isNotEmpty()) builder.addQueryParameter("f_search", terms)
+        builder.addQueryParameter("f_search", terms)
 
         return parseList(client.get(builder.build()).asJsoup())
     }
@@ -170,33 +171,63 @@ abstract class EHentai :
         manga: SManga,
     ): SManga = SManga.create().apply {
         url = manga.url
-        title = document.selectFirst("#gn")?.text()?.takeIf { it.isNotBlank() } ?: manga.title
-        thumbnail_url = document.selectFirst("#gd1 img, #gdc img")?.let {
-            it.absUrl("data-src").ifBlank { it.absUrl("src") }
-        } ?: manga.thumbnail_url
+        title = document
+            .selectFirst("#gn")
+            ?.text()
+            ?.trim()
+            ?.takeIf { it.isNotBlank() } ?: manga.title
 
-        genre =
+        // Обложка задана CSS-фоном у #gd1, а не тегом img.
+        thumbnail_url = document
+            .selectFirst("#gd1 div[style*=url]")
+            ?.attr("style")
+            ?.let { THUMBNAIL_REGEX.find(it)?.groupValues?.get(1) }
+            ?.takeIf { it.isNotBlank() }
+            ?: document.selectFirst("#gd1 img")?.let { it.absUrl("data-src").ifBlank { it.absUrl("src") } }
+            ?: manga.thumbnail_url
+
+        val tags =
             document
-                .select("#taglist a")
-                .eachText()
-                .map { it.trim() }
-                .filter { it.isNotBlank() && !it.equals("Russian", ignoreCase = true) }
+                .select("#taglist tr")
+                .flatMap { row ->
+                    val namespace =
+                        row
+                            .selectFirst("td.tc")
+                            ?.text()
+                            ?.trim()
+                            .orEmpty()
+                    row.select("td .gt a").map { namespace + it.text().trim() }
+                }.filter { it.isNotBlank() }
+
+        genre = tags.joinToString()
+
+        author =
+            tags
+                .filter { it.startsWith("artist:") }
+                .map { it.removePrefix("artist:") }
                 .distinct()
                 .joinToString()
+                .ifBlank { null }
 
         status = SManga.COMPLETED
 
+        val category = document.selectFirst("#gdc .cs")?.text()?.trim()
+        val originalTitle = document.selectFirst("#gj")?.text()?.trim()
         val info =
-            document
-                .select("#gdd tr, #gdd .gdtm")
-                .eachText()
-                .filter { it.isNotBlank() }
-                .joinToString("\n")
+            document.select("#gdd tr").mapNotNull { row ->
+                val key = row.selectFirst(".gdt1")?.text()?.trimEnd(':')
+                val value = row.selectFirst(".gdt2")?.text()?.trim()
+                if (!key.isNullOrBlank() && !value.isNullOrBlank()) "$key: $value" else null
+            }
+        val rating = document.selectFirst("#rating_label")?.text()?.trim()
 
         description =
-            listOf(info, document.selectFirst("#gj")?.text().orEmpty())
-                .filter { it.isNotBlank() }
-                .joinToString("\n\n")
+            buildList {
+                category?.takeIf { it.isNotBlank() }?.let { add("Категория: $it") }
+                originalTitle?.takeIf { it.isNotBlank() }?.let { add("Оригинальное название: $it") }
+                if (info.isNotEmpty()) add(info.joinToString("\n"))
+                rating?.takeIf { it.isNotBlank() }?.let { add(it) }
+            }.joinToString("\n\n")
     }
 
     private fun parseChapter(manga: SManga): SChapter = SChapter.create().apply {
@@ -230,17 +261,21 @@ abstract class EHentai :
             if (pageLinks.size >= maxPages) break
         }
 
-        val uniqueLinks = pageLinks.distinct().take(maxPages)
-
-        return uniqueLinks.mapIndexedNotNull { index, url ->
-            val imageUrl =
-                client
-                    .get(url.toHttpUrl())
-                    .asJsoup()
-                    .selectFirst("#img")
-                    ?.absUrl("src")
-            imageUrl?.takeIf { it.isNotBlank() }?.let { Page(index, url = url, imageUrl = it) }
-        }
+        return pageLinks
+            .distinct()
+            .take(maxPages)
+            .mapIndexed { index, url ->
+                Page(
+                    index,
+                    url = url,
+                    imageUrl =
+                        client
+                            .get(url.toHttpUrl())
+                            .asJsoup()
+                            .selectFirst("#img")
+                            ?.absUrl("src"),
+                )
+            }
     }
 
     // ───────────────────────────── Фильтры ─────────────────────────────
@@ -248,14 +283,19 @@ abstract class EHentai :
     override val supportsFilterFetching: Boolean = false
 
     override fun getFilterList(data: kotlinx.serialization.json.JsonElement?): FilterList = FilterList(
-        RussianOnlyFilter(),
+        GenreGroup(),
         CategoryGroup(),
         MinRatingFilter(),
         PagesGroup(),
         SearchNamesFilter(),
     )
 
-    class RussianOnlyFilter : Filter.TriState("Только русский перевод")
+    class GenreFilter(
+        name: String,
+        val query: String,
+    ) : Filter.TriState(name)
+
+    class GenreGroup : Filter.Group<GenreFilter>("Жанры", GENRES.map { GenreFilter(it.first, it.second) })
 
     class CategoryFilter(
         name: String,
@@ -312,5 +352,35 @@ abstract class EHentai :
         private const val PAGE_SIZE = 25
         private const val PREF_MAX_PAGES = "pref_max_pages"
         private val GALLERY_REGEX = Regex("/g/\\d+/[0-9a-f]+/")
+        private val THUMBNAIL_REGEX = Regex("url\\(([^)]+)\\)")
+
+        // Теги E-Hentai с namespace — именно так их принимает f_search.
+        private val GENRES =
+            listOf(
+                "Анал" to "other:anal",
+                "Орал" to "other:oral",
+                "Паизури" to "other:paizuri",
+                "Ахегао" to "other:ahegao",
+                "Чулки" to "other:stockings",
+                "Очки" to "other:glasses",
+                "Косплей" to "other:cosplaying",
+                "Минет" to "other:fallatio",
+                "Большая грудь" to "female:big breasts",
+                "Маленькая грудь" to "female:small breasts",
+                "Одна девушка" to "female:sole female",
+                "Один парень" to "male:sole male",
+                "Футанари" to "mixed:story arc",
+                "Групповой" to "other:group",
+                "Нецензурное" to "other:uncensored",
+                "Полный цвет" to "other:full color",
+                "Инцест" to "other:incest",
+                "Подчинение" to "other:femdom",
+                "Доминирование" to "other:males only",
+                "Юри" to "female:yuri",
+                "Яой" to "male:yaoi",
+                "Тентакли" to "other:tentacles",
+                "Мехи" to "other:mecha",
+                "Фурри" to "other:furry",
+            )
     }
 }
