@@ -295,7 +295,11 @@ class TomiloLib(
         thumbnail_url = item.text("coverImage").absoluteUrl().let { url ->
             // ?cover=2 — сбрасывает кэш обложек Mihon (ключ = URL), чтобы
             // заглушки, сохранённые старыми версиями, не залипали
-            if (url.isEmpty()) url else if (url.contains('?')) url else "$url?cover=2"
+            when {
+                url.isEmpty() -> url
+                url.contains('?') -> url
+                else -> "$url?cover=2"
+            }
         }
         author = item.text("author").takeIf { it.isNotEmpty() }
         artist = item.text("artist").takeIf { it.isNotEmpty() }
