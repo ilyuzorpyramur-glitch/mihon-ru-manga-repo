@@ -46,8 +46,10 @@ abstract class EHentai :
 
     override suspend fun getPopularManga(page: Int): MangasPage = parseList(client.get("$baseUrl/popular?page=$page".toHttpUrl()).asJsoup())
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage =
-        parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()).asJsoup())
+    override suspend fun getLatestUpdates(page: Int): MangasPage {
+        val url = "$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()
+        return parseList(client.get(url).asJsoup())
+    }
 
     override suspend fun getSearchMangaList(
         page: Int,
@@ -245,37 +247,30 @@ abstract class EHentai :
 
         while (nextUrl != null && visited.add(nextUrl)) {
             val document = client.get(nextUrl.toHttpUrl()).asJsoup()
+            val links = document.select("#gdt a[href*=\"/s/\"]")
+            links.forEach { link ->
+                val href = link.absUrl("href")
+                if (href.isNotBlank()) pageLinks.add(href)
+            }
 
-            pageLinks +=
-                document
-                    .select("#gdt a[href*=\"/s/\"]")
-                    .map { it.absUrl("href") }
-                    .filter { it.isNotBlank() }
-
-            nextUrl =
+            val next =
                 document
                     .select("#gdt a[href*=\"?p=\"]")
                     .map { it.absUrl("href") }
                     .firstOrNull { it !in visited }
+            nextUrl = next
 
             if (pageLinks.size >= maxPages) break
         }
 
-        return pageLinks
-            .distinct()
-            .take(maxPages)
-            .mapIndexed { index, url ->
-                Page(
-                    index,
-                    url = url,
-                    imageUrl =
-                        client
-                            .get(url.toHttpUrl())
-                            .asJsoup()
-                            .selectFirst("#img")
-                            ?.absUrl("src"),
-                )
-            }
+        val pages = mutableListOf<Page>()
+        pageLinks.distinct().take(maxPages).forEachIndexed { index, url ->
+            val document = client.get(url.toHttpUrl()).asJsoup()
+            val imageUrl = document.selectFirst("#img")?.absUrl("src")
+            pages.add(Page(index, url = url, imageUrl = imageUrl))
+        }
+
+        return pages
     }
 
     // ───────────────────────────── Фильтры ─────────────────────────────
