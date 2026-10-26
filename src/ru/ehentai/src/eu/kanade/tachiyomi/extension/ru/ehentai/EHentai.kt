@@ -41,7 +41,10 @@ abstract class EHentai : KeiSource() {
         query: String,
         filters: FilterList,
     ): MangasPage {
-        val onlyRussian = filters.filterIsInstance<RussianOnlyFilter>().firstOrNull()?.state != false
+        val russianState =
+            filters.filterIsInstance<RussianOnlyFilter>().firstOrNull()?.state
+                ?: Filter.TriState.STATE_INCLUDE
+        val onlyRussian = russianState != Filter.TriState.STATE_EXCLUDE
 
         val terms =
             buildList {
@@ -137,7 +140,7 @@ abstract class EHentai : KeiSource() {
 
         val thumbPages =
             buildList {
-                add(client.get("$baseUrl${chapter.url}").asJsoup())
+                add(document)
                 // Дополнительные страницы превью: ?p=1, ?p=2...
                 document
                     .select("#gdt a[href*=\"?p=\"]")
