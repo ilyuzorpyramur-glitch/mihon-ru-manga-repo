@@ -48,8 +48,7 @@ abstract class EHentai :
 
     override suspend fun getPopularManga(page: Int): MangasPage = parseList(client.get("$baseUrl/popular?page=$page").asJsoup())
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage =
-        parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()).asJsoup())
+    override suspend fun getLatestUpdates(page: Int): MangasPage = parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()).asJsoup())
 
     override suspend fun getSearchMangaList(
         page: Int,
