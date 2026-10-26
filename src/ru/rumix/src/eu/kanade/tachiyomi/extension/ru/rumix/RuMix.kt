@@ -148,10 +148,18 @@ abstract class RuMix : KeiSource() {
 
         // Основное название лежит в meta[itemprop=name]; h1.names содержит ещё и алиасы,
         // а .item-title — это ячейка таблицы глав, а не заголовок.
-        val rawTitle = document.selectFirst("meta[itemprop=name]")?.attr("content")?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?: document.selectFirst("h1.names span.name")?.text()?.trim()?.takeIf { it.isNotBlank() }
-            ?: manga.title
+        val rawTitle =
+            document
+                .selectFirst("meta[itemprop=name]")
+                ?.attr("content")
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?: document
+                    .selectFirst("h1.names span.name")
+                    ?.text()
+                    ?.trim()
+                    ?.takeIf { it.isNotBlank() }
+                ?: manga.title
 
         title = rawTitle
 
@@ -225,17 +233,37 @@ abstract class RuMix : KeiSource() {
     override suspend fun getPageList(chapter: SChapter): List<Page> {
         val document = client.get("$baseUrl${chapter.url}").asJsoup()
 
-        // Страницы ридера RuMix собирает JavaScript: в HTML лежат только обложки томов.
-        return document
-            .select("img[data-page]")
-            .mapNotNull { element ->
-                element
-                    .absUrl("data-original")
-                    .ifBlank { element.absUrl("data-pic-url") }
-                    .ifBlank { element.absUrl("src") }
-                    .takeIf { it.isNotBlank() }
-            }.distinct()
-            .mapIndexed { index, imageUrl -> Page(index, imageUrl = imageUrl) }
+        // Страницы лежат в <script>: rm_h.readerInit(chapterInfo, [['host','','path',w,h], ...])
+        val script =
+            document.selectFirst("script:containsData(chapterInfo)")?.data()
+                ?: throw Exception("Дизайн сайта обновился: не найден блок chapterInfo")
+
+        val begin =
+            script.indexOf("rm_h.readerInit(").takeIf { it >= 0 }
+                ?: throw Exception("Дизайн сайта обновился: не найден вызов rm_h.readerInit")
+
+        val end =
+            script.indexOf(");", begin).takeIf { it > begin }
+                ?: throw Exception("Не удалось разобрать список страниц")
+
+        return PAGE_ENTRY_REGEX
+            .findAll(script.substring(begin, end))
+            .mapIndexed { index, match ->
+                val host = match.groupValues[1]
+                val middle = match.groupValues[2]
+                val path = match.groupValues[3]
+
+                var imageUrl =
+                    when {
+                        middle.isBlank() && path.startsWith("/static/") -> baseUrl + path
+                        middle.endsWith("/manga/") -> host + path
+                        else -> middle + host + path
+                    }
+
+                if (!imageUrl.contains("://")) imageUrl = "https:$imageUrl"
+
+                Page(index, imageUrl = imageUrl.replace("//resh", "//h"))
+            }.toList()
     }
 
     // ───────────────────────────── Фильтры ─────────────────────────────
@@ -281,6 +309,7 @@ abstract class RuMix : KeiSource() {
         private const val SORT_DATE_UPDATE = "DATE_UPDATE"
         private const val SORT_DATE_CREATE = "DATE_CREATE"
         private val CHAPTER_REGEX = Regex("/vol(\\d+)/(\\d+)")
+        private val PAGE_ENTRY_REGEX = Regex("""\['([^']*)','([^']*)',"([^"]*)",\d+,\d+]""")
         private val PAGE_URL_REGEX = Regex("https://static\\.rumix\\.me/uploads/pics/[^\"'\\\\\\s<>]+\\.(?:jpg|jpeg|png|webp)")
         private val COVER_REGEX = Regex("_p\\.(?:jpg|jpeg|png)$")
 

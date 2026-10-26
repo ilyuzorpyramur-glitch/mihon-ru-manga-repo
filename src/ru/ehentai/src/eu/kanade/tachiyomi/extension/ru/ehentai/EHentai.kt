@@ -179,15 +179,15 @@ abstract class EHentai :
             ?.trim()
             ?.takeIf { it.isNotBlank() } ?: manga.title
 
-        // Обложка задана CSS-фоном у #gd1, а не тегом img.
-        thumbnail_url = document
-            .selectFirst("#gd1 div[style*=url]")
-            ?.attr("style")
-            ?.let { THUMBNAIL_REGEX.find(it)?.groupValues?.get(1) }
+        val style = document.selectFirst("#gd1 div[style*=url]")?.attr("style").orEmpty()
+        thumbnail_url = THUMBNAIL_REGEX
+            .find(style)
+            ?.groupValues
+            ?.get(1)
             ?.takeIf { it.isNotBlank() }
-            ?: document.selectFirst("#gd1 img")?.let { it.absUrl("data-src").ifBlank { it.absUrl("src") } }
             ?: manga.thumbnail_url
 
+        // #taglist: namespace в td.tc, значения — ссылки .gt a
         val tags =
             document
                 .select("#taglist tr")
@@ -201,34 +201,63 @@ abstract class EHentai :
                     row.select("td .gt a").map { namespace + it.text().trim() }
                 }.filter { it.isNotBlank() }
 
-        genre = tags.joinToString()
+        val artists = tags.filter { it.startsWith("artist:") }.map { it.removePrefix("artist:") }
+        val groups = tags.filter { it.startsWith("group:") }.map { it.removePrefix("group:") }
 
-        author =
+        artist = artists.distinct().joinToString()
+        author = (artists + groups).distinct().joinToString()
+
+        genre =
             tags
-                .filter { it.startsWith("artist:") }
-                .map { it.removePrefix("artist:") }
+                .filterNot { it.startsWith("language:") }
                 .distinct()
                 .joinToString()
-                .ifBlank { null }
 
         status = SManga.COMPLETED
 
-        val category = document.selectFirst("#gdc .cs")?.text()?.trim()
-        val originalTitle = document.selectFirst("#gj")?.text()?.trim()
+        val category =
+            document
+                .selectFirst("#gdc .cs")
+                ?.text()
+                ?.trim()
+                .orEmpty()
+        val originalTitle =
+            document
+                .selectFirst("#gj")
+                ?.text()
+                ?.trim()
+                .orEmpty()
+
         val info =
             document.select("#gdd tr").mapNotNull { row ->
                 val key = row.selectFirst(".gdt1")?.text()?.trimEnd(':')
                 val value = row.selectFirst(".gdt2")?.text()?.trim()
-                if (!key.isNullOrBlank() && !value.isNullOrBlank()) "$key: $value" else null
+                val skip = key == null || key == "Visible" || key == "Parent"
+                if (!skip && !value.isNullOrBlank()) "$key: $value" else null
             }
-        val rating = document.selectFirst("#rating_label")?.text()?.trim()
+
+        val rating =
+            document
+                .selectFirst("#rating_label")
+                ?.text()
+                ?.replace("Average:", "")
+                ?.trim()
+                .orEmpty()
+        val votes =
+            document
+                .selectFirst("#rating_count")
+                ?.text()
+                ?.trim()
+                .orEmpty()
 
         description =
             buildList {
-                category?.takeIf { it.isNotBlank() }?.let { add("Категория: $it") }
-                originalTitle?.takeIf { it.isNotBlank() }?.let { add("Оригинальное название: $it") }
+                if (category.isNotBlank()) add("Категория: $category")
+                if (originalTitle.isNotBlank()) add("Оригинальное название: $originalTitle")
+                if (rating.isNotBlank()) {
+                    add("Рейтинг: $rating" + if (votes.isNotBlank()) " ($votes оценок)" else "")
+                }
                 if (info.isNotEmpty()) add(info.joinToString("\n"))
-                rating?.takeIf { it.isNotBlank() }?.let { add(it) }
             }.joinToString("\n\n")
     }
 
