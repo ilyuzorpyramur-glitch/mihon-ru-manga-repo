@@ -6,10 +6,9 @@ plugins {
 
 keiyoushi {
     name = "RuMix"
-    versionCode = 1
+    versionCode = 2
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
-    theme = "grouple"
 
     source {
         lang = "ru"

@@ -1,5 +1,10 @@
 package eu.kanade.tachiyomi.extension.ru.ehentai
 
+import android.content.SharedPreferences
+import androidx.preference.EditTextPreference
+import androidx.preference.PreferenceScreen
+import androidx.preference.SwitchPreferenceCompat
+import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
@@ -9,46 +14,55 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.get
+import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
+import keiyoushi.utils.getPreferencesLazy
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 
 @Source
-abstract class EHentai : KeiSource() {
+abstract class EHentai :
+    KeiSource(),
+    ConfigurableSource {
+    private val preferences: SharedPreferences by getPreferencesLazy()
+
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = apply {
+        // E-Hentai жёстко ограничивает частоту запросов.
+        rateLimit(2)
+    }
+
+    private val maxPages: Int
+        get() = preferences.getString(PREF_MAX_PAGES, "100")?.toIntOrNull()?.coerceIn(1, 1000) ?: 100
+
     override fun imageRequest(page: Page): Request = super
         .imageRequest(page)
         .newBuilder()
         .header("Referer", "$baseUrl/")
         .build()
 
-    // ── Каталог ──────────────────────────────────────────────────────────────
+    // ───────────────────────────── Каталог ─────────────────────────────
 
     override suspend fun getPopularManga(page: Int): MangasPage = parseList(client.get("$baseUrl/popular?page=$page").asJsoup())
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage = MangasPage(
-        parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page").asJsoup()).mangas,
-        true,
-    )
+    override suspend fun getLatestUpdates(page: Int): MangasPage =
+        parseList(client.get("$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()).asJsoup())
 
     override suspend fun getSearchMangaList(
         page: Int,
         query: String,
         filters: FilterList,
     ): MangasPage {
-        val russianState =
+        val tagState =
             filters.filterIsInstance<RussianOnlyFilter>().firstOrNull()?.state
                 ?: Filter.TriState.STATE_INCLUDE
-        val onlyRussian = russianState != Filter.TriState.STATE_EXCLUDE
 
         val terms =
             buildList {
-                if (onlyRussian) add(LANGUAGE_TAG)
+                if (tagState != Filter.TriState.STATE_EXCLUDE) add(LANGUAGE_TAG)
                 if (query.isNotBlank()) add(query.trim())
             }.joinToString(" ")
 
@@ -60,35 +74,39 @@ abstract class EHentai : KeiSource() {
                 .addQueryParameter("page", page.toString())
                 .build()
 
-        return MangasPage(parseList(client.get(url).asJsoup()).mangas, true)
+        return parseList(client.get(url).asJsoup())
     }
 
     private fun parseList(document: Document): MangasPage {
-        val mangas = document.select("div.itg").mapNotNull(::parseItem).distinctBy { it.url }
+        val mangas =
+            document
+                .select("table.itg tr")
+                .mapNotNull(::parseRow)
+                .distinctBy { it.url }
+
         return MangasPage(mangas, mangas.size >= PAGE_SIZE)
     }
 
-    private fun parseItem(element: Element): SManga? {
-        val link = element.selectFirst("a[href*=\"/g/\"]") ?: return null
-        val href = link.absUrl("href")
-        if (!href.contains("/g/")) return null
+    private fun parseRow(row: Element): SManga? {
+        val link = row.selectFirst("a[href*=\"/g/\"]") ?: return null
+        if (!GALLERY_REGEX.containsMatchIn(link.absUrl("href"))) return null
 
         val title =
-            element.selectFirst(".glink")?.text()?.takeIf { it.isNotBlank() }
-                ?: link.text().takeIf { it.isNotBlank() }
+            row.selectFirst(".glink")?.text()?.takeIf { it.isNotBlank() }
+                ?: row.selectFirst("img[title]")?.attr("title")?.takeIf { it.isNotBlank() }
                 ?: return null
 
         return SManga.create().apply {
-            setUrlWithoutDomain(href)
+            setUrlWithoutDomain(link.absUrl("href"))
             this.title = title
             thumbnail_url =
-                element.selectFirst("img")?.let {
+                row.selectFirst("img")?.let {
                     it.absUrl("data-src").ifBlank { it.absUrl("src") }
                 }
         }
     }
 
-    // ── Тайтл и главы ────────────────────────────────────────────────────────
+    // ───────────────────────────── Тайтл ─────────────────────────────
 
     override suspend fun fetchMangaUpdate(
         manga: SManga,
@@ -98,10 +116,10 @@ abstract class EHentai : KeiSource() {
     ): SMangaUpdate {
         val document = client.get("$baseUrl${manga.url}").asJsoup()
 
-        val updated = parseDetails(document, manga)
+        val details = parseDetails(document, manga)
         val chapterList = if (fetchChapters) listOf(parseChapter(manga)) else chapters
 
-        return SMangaUpdate(updated, chapterList)
+        return SMangaUpdate(details, chapterList)
     }
 
     private fun parseDetails(
@@ -110,21 +128,32 @@ abstract class EHentai : KeiSource() {
     ): SManga = SManga.create().apply {
         url = manga.url
         title = document.selectFirst("#gn")?.text()?.takeIf { it.isNotBlank() } ?: manga.title
-        thumbnail_url = document.selectFirst("#gd1 img, #gdc img")?.absUrl("src")
+        thumbnail_url = document.selectFirst("#gd1 img, #gdc img")?.let {
+            it.absUrl("data-src").ifBlank { it.absUrl("src") }
+        } ?: manga.thumbnail_url
+
         genre =
             document
-                .select("#taglist a, .gt a")
+                .select("#taglist a")
                 .eachText()
-                .filter { it.isNotBlank() }
+                .map { it.trim() }
+                .filter { it.isNotBlank() && !it.equals("Russian", ignoreCase = true) }
                 .distinct()
                 .joinToString()
+
         status = SManga.COMPLETED
-        description =
+
+        val info =
             document
-                .select("#gdd tr")
+                .select("#gdd tr, #gdd .gdtm")
                 .eachText()
                 .filter { it.isNotBlank() }
                 .joinToString("\n")
+
+        description =
+            listOf(info, document.selectFirst("#gj")?.text().orEmpty())
+                .filter { it.isNotBlank() }
+                .joinToString("\n\n")
     }
 
     private fun parseChapter(manga: SManga): SChapter = SChapter.create().apply {
@@ -133,48 +162,48 @@ abstract class EHentai : KeiSource() {
         chapter_number = 1f
     }
 
-    // ── Страницы ─────────────────────────────────────────────────────────────
+    // ───────────────────────────── Страницы ─────────────────────────────
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val document = client.get("$baseUrl${chapter.url}").asJsoup()
+        val galleryUrl = "$baseUrl${chapter.url}"
 
-        val thumbPages =
-            buildList {
-                add(document)
-                // Дополнительные страницы превью: ?p=1, ?p=2...
+        // Собираем ссылки на страницы просмотра со всех страниц превью.
+        val pageLinks = mutableListOf<String>()
+        val visited = mutableSetOf<String>()
+        var nextUrl: String? = galleryUrl
+
+        while (nextUrl != null && visited.add(nextUrl)) {
+            val document = client.get(nextUrl).asJsoup()
+
+            pageLinks +=
+                document
+                    .select("#gdt a[href*=\"/s/\"]")
+                    .map { it.absUrl("href") }
+                    .filter { it.isNotBlank() }
+
+            nextUrl =
                 document
                     .select("#gdt a[href*=\"?p=\"]")
                     .map { it.absUrl("href") }
-                    .distinct()
-                    .forEach { add(client.get(it).asJsoup()) }
-            }
+                    .firstOrNull { it !in visited }
 
-        val pageUrls =
-            thumbPages
-                .flatMap { doc ->
-                    doc.select("#gdt a[href*=\"/s/\"]").map { it.absUrl("href") }
-                }.distinct()
+            if (pageLinks.size >= maxPages) break
+        }
 
-        val imageUrls =
-            coroutineScope {
-                pageUrls.chunked(PAGE_CONCURRENCY).flatMap { chunk ->
-                    chunk
-                        .map { url ->
-                            async {
-                                client
-                                    .get(url)
-                                    .asJsoup()
-                                    .selectFirst("#img")
-                                    ?.absUrl("src")
-                            }
-                        }.awaitAll()
-                }
-            }
+        val uniqueLinks = pageLinks.distinct().take(maxPages)
 
-        return imageUrls.mapIndexedNotNull { index, imageUrl ->
-            imageUrl?.let { Page(index, url = pageUrls.getOrNull(index).orEmpty(), imageUrl = it) }
+        return uniqueLinks.mapIndexedNotNull { index, url ->
+            val imageUrl =
+                client
+                    .get(url)
+                    .asJsoup()
+                    .selectFirst("#img")
+                    ?.absUrl("src")
+            imageUrl?.takeIf { it.isNotBlank() }?.let { Page(index, url = url, imageUrl = it) }
         }
     }
+
+    // ───────────────────────────── Фильтры ─────────────────────────────
 
     override val supportsFilterFetching: Boolean = false
 
@@ -184,9 +213,31 @@ abstract class EHentai : KeiSource() {
 
     class RussianOnlyFilter : Filter.TriState("Только русский перевод")
 
+    // ───────────────────────────── Настройки ─────────────────────────────
+
+    override fun setupPreferenceScreen(screen: PreferenceScreen) {
+        SwitchPreferenceCompat(screen.context)
+            .apply {
+                key = PREF_RUSSIAN_ONLY
+                title = "Только русский перевод"
+                summary = "Добавлять тег language:russian в поиск"
+                setDefaultValue(true)
+            }.also(screen::addPreference)
+
+        EditTextPreference(screen.context)
+            .apply {
+                key = PREF_MAX_PAGES
+                title = "Максимум страниц в галерее"
+                summary = "Ограничение на количество загружаемых изображений (1–1000)"
+                setDefaultValue("100")
+            }.also(screen::addPreference)
+    }
+
     companion object {
         private const val LANGUAGE_TAG = "language:russian"
-        private const val PAGE_SIZE = 20
-        private const val PAGE_CONCURRENCY = 4
+        private const val PAGE_SIZE = 25
+        private const val PREF_RUSSIAN_ONLY = "pref_russian_only"
+        private const val PREF_MAX_PAGES = "pref_max_pages"
+        private val GALLERY_REGEX = Regex("""/g/\d+/[0-9a-f]+/""")
     }
 }
