@@ -81,6 +81,8 @@ abstract class RuMix : KeiSource() {
                         builder.addQueryParameter("years", "${from.ifEmpty { "1900" }},${to.ifEmpty { "2100" }}")
                     }
                 }
+
+                else -> {}
             }
         }
 
