@@ -57,7 +57,9 @@ class TomiloLib(
             .newBuilder()
             .connectTimeout(30.seconds)
             .readTimeout(60.seconds)
-            .rateLimit(6, 1.seconds)
+            // Лимит только для API: обложки грузятся пачкой (30 штук в сетке),
+            // и общий лимит на все хосты их притормаживал.
+            .rateLimit(6, 1.seconds) { it.encodedPath.startsWith("/api") }
             .build()
 
     override fun headersBuilder() = Headers.Builder().apply {
@@ -290,7 +292,11 @@ class TomiloLib(
         val item = this@toSManga
         url = item.text("_id")
         title = item.text("name")
-        thumbnail_url = item.text("coverImage").absoluteUrl()
+        thumbnail_url = item.text("coverImage").absoluteUrl().let { url ->
+            // ?cover=2 — сбрасывает кэш обложек Mihon (ключ = URL), чтобы
+            // заглушки, сохранённые старыми версиями, не залипали
+            if (url.isEmpty()) url else if (url.contains('?')) url else "$url?cover=2"
+        }
         author = item.text("author").takeIf { it.isNotEmpty() }
         artist = item.text("artist").takeIf { it.isNotEmpty() }
         description = item.text("description")
