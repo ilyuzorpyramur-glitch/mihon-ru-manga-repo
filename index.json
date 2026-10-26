@@ -308,17 +308,17 @@
   {
     "name": "Kagane",
     "pkg": "eu.kanade.tachiyomi.extension.ru.kagane",
-    "apk": "tachiyomi-ru.kagane-v1.6.32.apk",
+    "apk": "tachiyomi-ru.kagane-v1.6.33.apk",
     "lang": "ru",
-    "code": 106032,
-    "version": "1.6.32",
+    "code": 106033,
+    "version": "1.6.33",
     "nsfw": 0,
     "sources": [
       {
         "name": "Kagane",
         "lang": "ru",
         "id": "8751507648303673848",
-        "baseUrl": "https://kagane.to"
+        "baseUrl": "https://kagane.org"
       }
     ]
   },
@@ -376,17 +376,17 @@
   {
     "name": "Manga Ball",
     "pkg": "eu.kanade.tachiyomi.extension.ru.mangaball",
-    "apk": "tachiyomi-ru.mangaball-v1.6.2.apk",
+    "apk": "tachiyomi-ru.mangaball-v1.6.3.apk",
     "lang": "ru",
-    "code": 106002,
-    "version": "1.6.2",
+    "code": 106003,
+    "version": "1.6.3",
     "nsfw": 0,
     "sources": [
       {
         "name": "Manga Ball",
         "lang": "ru",
         "id": "7203647082681930008",
-        "baseUrl": "https://mangaball.net"
+        "baseUrl": "https://mangaball.com"
       }
     ]
   },
@@ -580,17 +580,17 @@
   {
     "name": "MintManga",
     "pkg": "eu.kanade.tachiyomi.extension.ru.mintmanga",
-    "apk": "tachiyomi-ru.mintmanga-v1.6.91.apk",
+    "apk": "tachiyomi-ru.mintmanga-v1.6.92.apk",
     "lang": "ru",
-    "code": 106091,
-    "version": "1.6.91",
+    "code": 106092,
+    "version": "1.6.92",
     "nsfw": 0,
     "sources": [
       {
         "name": "MintManga",
         "lang": "ru",
         "id": "6",
-        "baseUrl": "https://2.mintmanga.one"
+        "baseUrl": "https://mintmanga.one"
       }
     ]
   },
