@@ -6,14 +6,14 @@ plugins {
 
 keiyoushi {
     name = "MintManga"
-    versionCode = 50
+    versionCode = 51
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
     theme = "grouple"
 
     source {
         baseUrl {
-            custom("https://mintmanga.one")
+            custom("https://2.mintmanga.one")
         }
         lang = "ru"
         id = 6L
