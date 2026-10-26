@@ -516,6 +516,7 @@ class TomiloLib(
         private const val MEDIA_BASE = "https://cdn.tomilo-lib.ru"
         private val MEDIA_HOSTS = listOf(MEDIA_BASE, "https://tomilo-lib.ru")
         private const val MEDIA_STRIP = "/uploads"
+
         // Отключено: /_next/image — динамический оптимизатор Next.js, он режет обложки до 384px,
         // отдаёт 400 на чужие хосты (S3) и отваливается при пачке параллельных запросов.
         // Статический CDN отдаёт те же файлы оригинального размера без прокси.
