@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "Tomilo-lib"
-    versionCode = 6
+    versionCode = 7
     contentWarning = ContentWarning.MIXED
     libVersion = "1.4"
 
