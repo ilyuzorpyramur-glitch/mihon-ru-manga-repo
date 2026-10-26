@@ -138,10 +138,10 @@
   {
     "name": "E-Hentai",
     "pkg": "eu.kanade.tachiyomi.extension.ru.ehentai",
-    "apk": "tachiyomi-ru.ehentai-v1.6.5.apk",
+    "apk": "tachiyomi-ru.ehentai-v1.6.6.apk",
     "lang": "ru",
-    "code": 106005,
-    "version": "1.6.5",
+    "code": 106006,
+    "version": "1.6.6",
     "nsfw": 1,
     "sources": [
       {
@@ -750,10 +750,10 @@
   {
     "name": "RuMix",
     "pkg": "eu.kanade.tachiyomi.extension.ru.rumix",
-    "apk": "tachiyomi-ru.rumix-v1.6.7.apk",
+    "apk": "tachiyomi-ru.rumix-v1.6.8.apk",
     "lang": "ru",
-    "code": 106007,
-    "version": "1.6.7",
+    "code": 106008,
+    "version": "1.6.8",
     "nsfw": 0,
     "sources": [
       {
