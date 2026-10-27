@@ -1,19 +1,17 @@
-﻿2026-10-27T03:09:51.9490064Z Post job cleanup.
-2026-10-27T03:09:52.2105562Z In post-action step
-2026-10-27T03:09:52.2120480Z ##[group]Stopping Gradle daemons
-2026-10-27T03:09:52.2122257Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1
-2026-10-27T03:09:52.2139347Z [command]/home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/bin/gradle --stop
-2026-10-27T03:09:52.9052662Z No Gradle daemons are running.
-2026-10-27T03:09:52.9141620Z ##[endgroup]
-2026-10-27T03:09:52.9144342Z Not performing cache-cleanup due to build failure
-2026-10-27T03:09:52.9145816Z ##[group]Caching Gradle state
-2026-10-27T03:09:52.9459268Z Not saving configuration-cache state, as no encryption key was provided
-2026-10-27T03:09:54.0504274Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
-2026-10-27T03:09:55.3907793Z Sent 1965290 of 1965290 (100.0%), 16.0 MBs/sec
-2026-10-27T03:09:55.4949758Z Saved cache entry with key gradle-kotlin-dsl-v1-d8daeae8b6ce4129983d0a357e621128 from /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 1895ms
-2026-10-27T03:09:56.5931520Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
-2026-10-27T03:09:57.8328989Z Sent 30946772 of 30946772 (100.0%), 29.5 MBs/sec
-2026-10-27T03:09:58.1643824Z Saved cache entry with key gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-88d8fcad342e4408414c21a59b27723de3786d13 from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1583ms
-2026-10-27T03:09:58.1645733Z ##[endgroup]
-2026-10-27T03:09:58.1652959Z Generating Job Summary
-2026-10-27T03:09:58.1667124Z Completed post-action step
+﻿2026-10-27T03:13:21.7138436Z Post job cleanup.
+2026-10-27T03:13:21.9647916Z In post-action step
+2026-10-27T03:13:21.9661046Z ##[group]Stopping Gradle daemons
+2026-10-27T03:13:21.9662295Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1
+2026-10-27T03:13:21.9679103Z [command]/home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/bin/gradle --stop
+2026-10-27T03:13:22.6108921Z No Gradle daemons are running.
+2026-10-27T03:13:22.6201457Z ##[endgroup]
+2026-10-27T03:13:22.6203500Z Not performing cache-cleanup due to build failure
+2026-10-27T03:13:22.6204460Z ##[group]Caching Gradle state
+2026-10-27T03:13:22.6493394Z Not saving configuration-cache state, as no encryption key was provided
+2026-10-27T03:13:25.6928165Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
+2026-10-27T03:13:27.1159103Z Sent 23592960 of 30943791 (76.2%), 22.5 MBs/sec
+2026-10-27T03:13:27.6098094Z Sent 30943791 of 30943791 (100.0%), 19.8 MBs/sec
+2026-10-27T03:13:28.1409139Z Saved cache entry with key gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-8ba9d93579f2cae744af4d8f72ca171b7fe43300 from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 2463ms
+2026-10-27T03:13:28.1412738Z ##[endgroup]
+2026-10-27T03:13:28.1417071Z Generating Job Summary
+2026-10-27T03:13:28.1430007Z Completed post-action step

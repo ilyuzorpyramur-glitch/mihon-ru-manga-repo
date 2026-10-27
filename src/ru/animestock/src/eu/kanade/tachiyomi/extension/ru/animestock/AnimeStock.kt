@@ -482,7 +482,6 @@ class AnimeStock(
         private const val PAGE_SIZE = 20
         private const val SEARCH_LIMIT = 90
         private const val SUB_RUBRIC_LIMIT = 100
-        private const val SB_KEY = "sb_publishable_tRNjKezML6kJc74KsNKWKA_Lyxd0k2x"
         private const val SB_URL = "https://updzooucvimmlzftytke.supabase.co"
         private const val SB_HOST = "updzooucvimmlzftytke.supabase.co"
         private const val SB_TABLE = "anime_catalog"
