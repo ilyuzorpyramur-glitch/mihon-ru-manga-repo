@@ -4,3 +4,14 @@ local.properties
 signingkey.jks
 source-info/
 .idea/
+
+ci_run.zip
+ci_logs.zip
+cilogs/
+cilogs4/
+cilogs5/
+cilogs6/
+cilogs7/
+cilogs8/
+cilogs9/
+cilogs10/
