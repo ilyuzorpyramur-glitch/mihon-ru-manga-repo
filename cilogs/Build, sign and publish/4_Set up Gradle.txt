@@ -1,88 +1,90 @@
-﻿2026-10-27T05:26:08.4637409Z ##[group]Run gradle/actions/setup-gradle@v4
-2026-10-27T05:26:08.4637792Z with:
-2026-10-27T05:26:08.4638295Z   cache-disabled: false
-2026-10-27T05:26:08.4638585Z   cache-read-only: false
-2026-10-27T05:26:08.4638846Z   cache-write-only: false
-2026-10-27T05:26:08.4639106Z   cache-overwrite-existing: false
-2026-10-27T05:26:08.4639398Z   cache-cleanup: on-success
-2026-10-27T05:26:08.4639697Z   gradle-home-cache-includes: caches
+﻿2026-10-27T05:31:10.1336241Z ##[group]Run gradle/actions/setup-gradle@v4
+2026-10-27T05:31:10.1336475Z with:
+2026-10-27T05:31:10.1336604Z   cache-disabled: false
+2026-10-27T05:31:10.1336751Z   cache-read-only: false
+2026-10-27T05:31:10.1336896Z   cache-write-only: false
+2026-10-27T05:31:10.1337050Z   cache-overwrite-existing: false
+2026-10-27T05:31:10.1337216Z   cache-cleanup: on-success
+2026-10-27T05:31:10.1337394Z   gradle-home-cache-includes: caches
 notifications
 
-2026-10-27T05:26:08.4640249Z   add-job-summary: always
-2026-10-27T05:26:08.4640532Z   add-job-summary-as-pr-comment: never
-2026-10-27T05:26:08.4640849Z   dependency-graph: disabled
-2026-10-27T05:26:08.4641171Z   dependency-graph-report-dir: dependency-graph-reports
-2026-10-27T05:26:08.4641609Z   dependency-graph-continue-on-failure: true
-2026-10-27T05:26:08.4641938Z   build-scan-publish: false
-2026-10-27T05:26:08.4642195Z   validate-wrappers: true
-2026-10-27T05:26:08.4642472Z   allow-snapshot-wrappers: false
-2026-10-27T05:26:08.4642766Z   gradle-home-cache-strict-match: false
-2026-10-27T05:26:08.4643119Z   workflow-job-context: null
-2026-10-27T05:26:08.4648353Z   github-token: ***
-2026-10-27T05:26:08.4648878Z env:
-2026-10-27T05:26:08.4649618Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
-2026-10-27T05:26:08.4650786Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
-2026-10-27T05:26:08.4651489Z ##[endgroup]
-2026-10-27T05:26:10.0509741Z Merged default JDK locations into /home/runner/.m2/toolchains.xml
-2026-10-27T05:26:10.0510592Z Preparing cache for cleanup.
-2026-10-27T05:26:10.0511483Z ##[group]Restore Gradle state from cache
-2026-10-27T05:26:10.2045957Z Cache hit for restore-key: gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-4267919f90266867e4c275da18cf072ff6070259
-2026-10-27T05:26:11.0481844Z Received 37610880 of 37610880 (100.0%), 51.1 MBs/sec
-2026-10-27T05:26:11.0484014Z Cache Size: ~36 MB (37610880 B)
-2026-10-27T05:26:11.0513528Z [command]/usr/bin/tar -xf /home/runner/work/_temp/fa23c37c-e5ae-4f5e-9656-ab3878d92b15/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:11.3433637Z Cache restored successfully
-2026-10-27T05:26:11.3454739Z Restored cache entry with key gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-7d0ec8171e328e7baa7a93f1f2a78740d94a303d to /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1294ms
-2026-10-27T05:26:11.4901996Z Cache hit for: gradle-instrumented-jars-v1-9038e06ebe1eed9ca6188cb694452e4a
-2026-10-27T05:26:11.4968988Z Cache hit for: gradle-groovy-dsl-v1-80314a6df318aa65c692d6734dd50fef
-2026-10-27T05:26:11.4976102Z Cache hit for: gradle-generated-gradle-jars-v1-dc5a4650abbad0b0d866cf541e44abd4
-2026-10-27T05:26:11.5024017Z Cache hit for: gradle-kotlin-dsl-v1-17953401cc370b9f2e35eddca472c32b
-2026-10-27T05:26:11.5045596Z Cache hit for: gradle-wrapper-zips-v1-ef43a8e2ea38ce83c4462b7d7ca3782b
-2026-10-27T05:26:11.5092702Z Cache hit for: gradle-transforms-v1-f64cf4a12574c28eef97ddeb885003cd
-2026-10-27T05:26:11.5204972Z Cache hit for: gradle-dependencies-v1-65f73bc3641a41e66745320654abac33
-2026-10-27T05:26:11.5730145Z Received 68712 of 68712 (100.0%), 1.5 MBs/sec
-2026-10-27T05:26:11.5731236Z Cache Size: ~0 MB (68712 B)
-2026-10-27T05:26:11.5757591Z [command]/usr/bin/tar -xf /home/runner/work/_temp/ea79a3dc-98cd-4bb5-85d5-4da7f0933f7d/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:11.5911598Z Cache restored successfully
-2026-10-27T05:26:11.5914236Z Restored cache entry with key gradle-instrumented-jars-v1-9038e06ebe1eed9ca6188cb694452e4a to /home/runner/.gradle/caches/jars-*/*/ in 244ms
-2026-10-27T05:26:11.9088841Z Received 126425 of 126425 (100.0%), 0.4 MBs/sec
-2026-10-27T05:26:11.9089664Z Cache Size: ~0 MB (126425 B)
-2026-10-27T05:26:11.9112900Z [command]/usr/bin/tar -xf /home/runner/work/_temp/57c476f6-43b2-4571-9644-e3318f5a8871/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:11.9551755Z Cache restored successfully
-2026-10-27T05:26:11.9571748Z Restored cache entry with key gradle-groovy-dsl-v1-80314a6df318aa65c692d6734dd50fef to /home/runner/.gradle/caches/*/groovy-dsl/*/ in 607ms
-2026-10-27T05:26:12.2533220Z Received 2154665 of 2154665 (100.0%), 3.5 MBs/sec
-2026-10-27T05:26:12.2534134Z Cache Size: ~2 MB (2154665 B)
-2026-10-27T05:26:12.2697972Z [command]/usr/bin/tar -xf /home/runner/work/_temp/bae3daf6-c3d3-40a7-a22e-c7cbff91dec5/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:12.6264565Z Received 20971520 of 43553702 (48.2%), 20.0 MBs/sec
-2026-10-27T05:26:12.6474364Z Received 46137344 of 150681869 (30.6%), 44.0 MBs/sec
-2026-10-27T05:26:12.6618401Z Received 46137344 of 128303073 (36.0%), 43.8 MBs/sec
-2026-10-27T05:26:12.6768612Z Received 58720256 of 356244947 (16.5%), 55.9 MBs/sec
-2026-10-27T05:26:12.8172579Z Received 43553702 of 43553702 (100.0%), 34.8 MBs/sec
-2026-10-27T05:26:12.8174559Z Cache Size: ~42 MB (43553702 B)
-2026-10-27T05:26:12.8964108Z [command]/usr/bin/tar -xf /home/runner/work/_temp/449d0503-ee16-4e7e-bb78-c85dc5aa0e4d/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:13.3676524Z Cache restored successfully
-2026-10-27T05:26:13.3710578Z Restored cache entry with key gradle-generated-gradle-jars-v1-dc5a4650abbad0b0d866cf541e44abd4 to /home/runner/.gradle/caches/9.7.1/generated-gradle-jars/gradle-api-9.7.1.jar in 2024ms
-2026-10-27T05:26:13.3903531Z Cache restored successfully
-2026-10-27T05:26:13.3906322Z Restored cache entry with key gradle-kotlin-dsl-v1-17953401cc370b9f2e35eddca472c32b to /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 2043ms
-2026-10-27T05:26:13.4789722Z Received 128303073 of 128303073 (100.0%), 67.2 MBs/sec
-2026-10-27T05:26:13.4791115Z Cache Size: ~122 MB (128303073 B)
-2026-10-27T05:26:13.5648407Z [command]/usr/bin/tar -xf /home/runner/work/_temp/7b7cce7d-6cbc-4de5-96e6-948117914257/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:13.6564500Z Received 138412032 of 150681869 (91.9%), 65.7 MBs/sec
-2026-10-27T05:26:13.6855625Z Received 134217728 of 356244947 (37.7%), 63.6 MBs/sec
-2026-10-27T05:26:13.7696426Z Received 150681869 of 150681869 (100.0%), 67.7 MBs/sec
-2026-10-27T05:26:13.7698421Z Cache Size: ~144 MB (150681869 B)
-2026-10-27T05:26:13.7746157Z [command]/usr/bin/tar -xf /home/runner/work/_temp/0a70962e-f71b-4cda-92e7-472d65fc543a/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:14.2454647Z Cache restored successfully
-2026-10-27T05:26:14.2592048Z Restored cache entry with key gradle-wrapper-zips-v1-ef43a8e2ea38ce83c4462b7d7ca3782b to /home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv in 2908ms
-2026-10-27T05:26:14.6882941Z Received 339738624 of 356244947 (95.4%), 107.5 MBs/sec
-2026-10-27T05:26:14.8053062Z Received 356244947 of 356244947 (100.0%), 108.5 MBs/sec
-2026-10-27T05:26:14.8060078Z Cache Size: ~340 MB (356244947 B)
-2026-10-27T05:26:14.8132812Z [command]/usr/bin/tar -xf /home/runner/work/_temp/5c97b6f8-d636-4f43-bea2-0829a2aaef5a/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
-2026-10-27T05:26:15.5529004Z Cache restored successfully
-2026-10-27T05:26:15.5612004Z Restored cache entry with key gradle-transforms-v1-f64cf4a12574c28eef97ddeb885003cd to /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 4210ms
-2026-10-27T05:26:15.6723850Z Cache restored successfully
-2026-10-27T05:26:15.6885634Z Restored cache entry with key gradle-dependencies-v1-65f73bc3641a41e66745320654abac33 to /home/runner/.gradle/caches/modules-*/files-*/*/*/*/* in 4341ms
-2026-10-27T05:26:15.7153637Z ##[endgroup]
-2026-10-27T05:26:15.7795321Z ##[group]All Gradle Wrapper jars are valid
-2026-10-27T05:26:15.7797140Z ✓ Found known Gradle Wrapper JAR files:
-2026-10-27T05:26:15.7798496Z   7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d gradle/wrapper/gradle-wrapper.jar
-2026-10-27T05:26:15.7799831Z ##[endgroup]
+2026-10-27T05:31:10.1337778Z   add-job-summary: always
+2026-10-27T05:31:10.1337934Z   add-job-summary-as-pr-comment: never
+2026-10-27T05:31:10.1338109Z   dependency-graph: disabled
+2026-10-27T05:31:10.1338298Z   dependency-graph-report-dir: dependency-graph-reports
+2026-10-27T05:31:10.1338519Z   dependency-graph-continue-on-failure: true
+2026-10-27T05:31:10.1338706Z   build-scan-publish: false
+2026-10-27T05:31:10.1338858Z   validate-wrappers: true
+2026-10-27T05:31:10.1339025Z   allow-snapshot-wrappers: false
+2026-10-27T05:31:10.1339197Z   gradle-home-cache-strict-match: false
+2026-10-27T05:31:10.1339406Z   workflow-job-context: null
+2026-10-27T05:31:10.1340814Z   github-token: ***
+2026-10-27T05:31:10.1340939Z env:
+2026-10-27T05:31:10.1341121Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
+2026-10-27T05:31:10.1341415Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.20-1/x64
+2026-10-27T05:31:10.1341642Z ##[endgroup]
+2026-10-27T05:31:11.8346042Z Merged default JDK locations into /home/runner/.m2/toolchains.xml
+2026-10-27T05:31:11.8346966Z Preparing cache for cleanup.
+2026-10-27T05:31:11.8350480Z ##[group]Restore Gradle state from cache
+2026-10-27T05:31:11.9868470Z Cache hit for restore-key: gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-7d0ec8171e328e7baa7a93f1f2a78740d94a303d
+2026-10-27T05:31:13.1127341Z Received 30034838 of 46812054 (64.2%), 28.6 MBs/sec
+2026-10-27T05:31:14.1138569Z Received 30034838 of 46812054 (64.2%), 14.3 MBs/sec
+2026-10-27T05:31:15.1150643Z Received 30034838 of 46812054 (64.2%), 9.5 MBs/sec
+2026-10-27T05:31:16.1158570Z Received 38423446 of 46812054 (82.1%), 9.2 MBs/sec
+2026-10-27T05:31:17.1161701Z Received 42617750 of 46812054 (91.0%), 8.1 MBs/sec
+2026-10-27T05:31:17.3433011Z Received 46812054 of 46812054 (100.0%), 8.5 MBs/sec
+2026-10-27T05:31:17.3435150Z Cache Size: ~45 MB (46812054 B)
+2026-10-27T05:31:17.3458962Z [command]/usr/bin/tar -xf /home/runner/work/_temp/e3ab26e3-987e-4d79-ac4d-edee6b222362/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:17.5478704Z Cache restored successfully
+2026-10-27T05:31:17.5502984Z Restored cache entry with key gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-5f26fb3c2fe74c79854e251bde230a2033aec268 to /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 5715ms
+2026-10-27T05:31:17.6780091Z Cache hit for: gradle-dependencies-v1-65f73bc3641a41e66745320654abac33
+2026-10-27T05:31:17.6786543Z Cache hit for: gradle-transforms-v1-b6d16410693290f27ba18f16a9514669
+2026-10-27T05:31:17.6835780Z Cache hit for: gradle-generated-gradle-jars-v1-dc5a4650abbad0b0d866cf541e44abd4
+2026-10-27T05:31:17.6850505Z Cache hit for: gradle-instrumented-jars-v1-9038e06ebe1eed9ca6188cb694452e4a
+2026-10-27T05:31:17.6861739Z Cache hit for: gradle-groovy-dsl-v1-80314a6df318aa65c692d6734dd50fef
+2026-10-27T05:31:17.6957250Z Cache hit for: gradle-wrapper-zips-v1-ef43a8e2ea38ce83c4462b7d7ca3782b
+2026-10-27T05:31:17.6994337Z Cache hit for: gradle-kotlin-dsl-v1-17953401cc370b9f2e35eddca472c32b
+2026-10-27T05:31:18.0527846Z Received 126425 of 126425 (100.0%), 0.6 MBs/sec
+2026-10-27T05:31:18.0528332Z Cache Size: ~0 MB (126425 B)
+2026-10-27T05:31:18.0547626Z [command]/usr/bin/tar -xf /home/runner/work/_temp/1d1e7c55-1ce6-47d1-930e-8811a66f74eb/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:18.0811978Z Cache restored successfully
+2026-10-27T05:31:18.0813509Z Restored cache entry with key gradle-groovy-dsl-v1-80314a6df318aa65c692d6734dd50fef to /home/runner/.gradle/caches/*/groovy-dsl/*/ in 529ms
+2026-10-27T05:31:18.1002697Z Received 68712 of 68712 (100.0%), 0.3 MBs/sec
+2026-10-27T05:31:18.1002954Z Cache Size: ~0 MB (68712 B)
+2026-10-27T05:31:18.1023513Z [command]/usr/bin/tar -xf /home/runner/work/_temp/1d72c055-e1eb-476d-9289-536a5d1ece55/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:18.1135536Z Cache restored successfully
+2026-10-27T05:31:18.1137189Z Restored cache entry with key gradle-instrumented-jars-v1-9038e06ebe1eed9ca6188cb694452e4a to /home/runner/.gradle/caches/jars-*/*/ in 561ms
+2026-10-27T05:31:18.2818122Z Received 2154665 of 2154665 (100.0%), 4.3 MBs/sec
+2026-10-27T05:31:18.2858596Z Cache Size: ~2 MB (2154665 B)
+2026-10-27T05:31:18.2960324Z [command]/usr/bin/tar -xf /home/runner/work/_temp/1fb7f873-5882-441b-beaa-8c94e5be2506/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:18.7443447Z Received 43553702 of 43553702 (100.0%), 45.9 MBs/sec
+2026-10-27T05:31:18.7445511Z Cache Size: ~42 MB (43553702 B)
+2026-10-27T05:31:18.7862667Z [command]/usr/bin/tar -xf /home/runner/work/_temp/6d260144-f65c-4409-9806-78d695d8ee81/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:18.8152207Z Received 79691776 of 129304433 (61.6%), 75.8 MBs/sec
+2026-10-27T05:31:18.8319045Z Received 79691776 of 356244947 (22.4%), 75.6 MBs/sec
+2026-10-27T05:31:18.8635490Z Received 83886080 of 150681869 (55.7%), 78.9 MBs/sec
+2026-10-27T05:31:19.1564895Z Received 129304433 of 129304433 (100.0%), 91.8 MBs/sec
+2026-10-27T05:31:19.1565805Z Cache Size: ~123 MB (129304433 B)
+2026-10-27T05:31:19.2240090Z Cache restored successfully
+2026-10-27T05:31:19.2240525Z Cache restored successfully
+2026-10-27T05:31:19.2243792Z Restored cache entry with key gradle-kotlin-dsl-v1-17953401cc370b9f2e35eddca472c32b to /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 1672ms
+2026-10-27T05:31:19.2252569Z [command]/usr/bin/tar -xf /home/runner/work/_temp/c3a0242d-874c-4a86-8bfe-918aaacd820d/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:19.2305325Z Restored cache entry with key gradle-generated-gradle-jars-v1-dc5a4650abbad0b0d866cf541e44abd4 to /home/runner/.gradle/caches/9.7.1/generated-gradle-jars/gradle-api-9.7.1.jar in 1680ms
+2026-10-27T05:31:19.3958050Z Received 150681869 of 150681869 (100.0%), 93.0 MBs/sec
+2026-10-27T05:31:19.3958864Z Cache Size: ~144 MB (150681869 B)
+2026-10-27T05:31:19.4029257Z [command]/usr/bin/tar -xf /home/runner/work/_temp/8a7a87a4-15f7-48e8-a5bb-2107326b43e6/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:19.6335954Z Cache restored successfully
+2026-10-27T05:31:19.6484766Z Restored cache entry with key gradle-wrapper-zips-v1-ef43a8e2ea38ce83c4462b7d7ca3782b to /home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv in 2096ms
+2026-10-27T05:31:19.8251972Z Received 264241152 of 356244947 (74.2%), 125.7 MBs/sec
+2026-10-27T05:31:20.2698945Z Received 356244947 of 356244947 (100.0%), 138.7 MBs/sec
+2026-10-27T05:31:20.2707996Z Cache Size: ~340 MB (356244947 B)
+2026-10-27T05:31:20.2807135Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a51db8f0-006f-4d98-bfd2-ad7ab51c0ae5/cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --use-compress-program unzstd
+2026-10-27T05:31:20.7128216Z Cache restored successfully
+2026-10-27T05:31:20.7206294Z Restored cache entry with key gradle-transforms-v1-b6d16410693290f27ba18f16a9514669 to /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 3168ms
+2026-10-27T05:31:20.8343610Z Cache restored successfully
+2026-10-27T05:31:20.8484881Z Restored cache entry with key gradle-dependencies-v1-65f73bc3641a41e66745320654abac33 to /home/runner/.gradle/caches/modules-*/files-*/*/*/*/* in 3297ms
+2026-10-27T05:31:20.8650565Z ##[endgroup]
+2026-10-27T05:31:20.8893515Z ##[group]All Gradle Wrapper jars are valid
+2026-10-27T05:31:20.8894209Z ✓ Found known Gradle Wrapper JAR files:
+2026-10-27T05:31:20.8894563Z   7a9ce74cff467ca1bf60a4fcd9f05185acceda4d0f382434d393e17864262c5d gradle/wrapper/gradle-wrapper.jar
+2026-10-27T05:31:20.8894990Z ##[endgroup]
