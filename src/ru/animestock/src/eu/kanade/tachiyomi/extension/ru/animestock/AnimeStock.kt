@@ -19,7 +19,6 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
-import org.jsoup.nodes.Document
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -70,17 +69,15 @@ class AnimeStock(
         page: Int,
         tagId: Long? = null,
         limit: Int = PAGE_SIZE + 1,
-    ): HttpUrl =
-        "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
-            .addQueryParameter("limit", limit.toString())
-            .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
-            .addQueryParameter("deleted", "false")
-            .addQueryParameter("published", "true")
-            .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
-            .build()
+    ): HttpUrl = "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
+        .addQueryParameter("limit", limit.toString())
+        .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
+        .addQueryParameter("deleted", "false")
+        .addQueryParameter("published", "true")
+        .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
+        .build()
 
-    override fun popularMangaRequest(page: Int): Request =
-        GET(articlesUrl(RUBRIC_MANGA, page), headers)
+    override fun popularMangaRequest(page: Int): Request = GET(articlesUrl(RUBRIC_MANGA, page), headers)
 
     override fun popularMangaParse(response: Response): MangasPage = parseArticles(response)
 
