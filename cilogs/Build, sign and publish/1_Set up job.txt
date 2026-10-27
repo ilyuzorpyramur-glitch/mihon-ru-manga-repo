@@ -1,35 +1,35 @@
-﻿2026-10-27T03:12:10.8098429Z Current runner version: '2.338.0'
-2026-10-27T03:12:10.8124813Z ##[group]Runner Image Provisioner
-2026-10-27T03:12:10.8125818Z Hosted Compute Agent
-2026-10-27T03:12:10.8126469Z Version: 20261021.618
-2026-10-27T03:12:10.8127204Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
-2026-10-27T03:12:10.8127984Z Build Date: 2026-10-21T00:45:21Z
-2026-10-27T03:12:10.8128682Z Worker ID: {320d786b-888f-4aef-a28a-1aa879163178}
-2026-10-27T03:12:10.8129538Z Region: westus2
-2026-10-27T03:12:10.8130143Z Cloud: Azure
-2026-10-27T03:12:10.8131118Z ##[endgroup]
-2026-10-27T03:12:10.8132674Z ##[group]Operating System
-2026-10-27T03:12:10.8133463Z Ubuntu
-2026-10-27T03:12:10.8134065Z 24.04.5
-2026-10-27T03:12:10.8134654Z LTS
-2026-10-27T03:12:10.8135278Z ##[endgroup]
-2026-10-27T03:12:10.8135850Z ##[group]Runner Image
-2026-10-27T03:12:10.8136486Z Image: ubuntu-24.04
-2026-10-27T03:12:10.8137172Z Version: 20261012.334.1
-2026-10-27T03:12:10.8138354Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
-2026-10-27T03:12:10.8140233Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
-2026-10-27T03:12:10.8141498Z ##[endgroup]
-2026-10-27T03:12:10.8142702Z ##[group]GITHUB_TOKEN Permissions
-2026-10-27T03:12:10.8144659Z Contents: write
-2026-10-27T03:12:10.8145317Z Metadata: read
-2026-10-27T03:12:10.8145960Z ##[endgroup]
-2026-10-27T03:12:10.8148082Z Secret source: Actions
-2026-10-27T03:12:10.8149165Z Cache mode: write
-2026-10-27T03:12:10.8149885Z Prepare workflow directory
-2026-10-27T03:12:10.8494405Z Prepare all required actions
-2026-10-27T03:12:10.8544536Z Getting action download info
-2026-10-27T03:12:11.2286667Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
-2026-10-27T03:12:11.3444328Z Download action repository 'actions/setup-java@v4' (SHA:cf277c60eb25467037889841efdb72551f06f6c3)
-2026-10-27T03:12:11.6364826Z Download action repository 'gradle/actions@v4' (SHA:ed408507eac070d1f99cc633dbcf757c94c7933a)
-2026-10-27T03:12:12.3812443Z Download action repository 'EndBug/add-and-commit@v9' (SHA:a94899bca583c204427a224a7af87c02f9b325d5)
-2026-10-27T03:12:12.6850436Z Complete job name: Build, sign and publish
+﻿2026-10-27T05:21:27.2684180Z Current runner version: '2.338.0'
+2026-10-27T05:21:27.2705834Z ##[group]Runner Image Provisioner
+2026-10-27T05:21:27.2706824Z Hosted Compute Agent
+2026-10-27T05:21:27.2707385Z Version: 20261021.618
+2026-10-27T05:21:27.2708062Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-27T05:21:27.2708753Z Build Date: 2026-10-21T00:45:21Z
+2026-10-27T05:21:27.2709365Z Worker ID: {40e59885-9114-45de-b735-612a67c07f20}
+2026-10-27T05:21:27.2710169Z Region: centralus
+2026-10-27T05:21:27.2710725Z Cloud: Azure
+2026-10-27T05:21:27.2711275Z ##[endgroup]
+2026-10-27T05:21:27.2712489Z ##[group]Operating System
+2026-10-27T05:21:27.2713106Z Ubuntu
+2026-10-27T05:21:27.2713626Z 24.04.5
+2026-10-27T05:21:27.2714118Z LTS
+2026-10-27T05:21:27.2714681Z ##[endgroup]
+2026-10-27T05:21:27.2715197Z ##[group]Runner Image
+2026-10-27T05:21:27.2715881Z Image: ubuntu-24.04
+2026-10-27T05:21:27.2716486Z Version: 20261012.334.1
+2026-10-27T05:21:27.2717495Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-27T05:21:27.2719224Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+2026-10-27T05:21:27.2720152Z ##[endgroup]
+2026-10-27T05:21:27.2721185Z ##[group]GITHUB_TOKEN Permissions
+2026-10-27T05:21:27.2723030Z Contents: write
+2026-10-27T05:21:27.2723571Z Metadata: read
+2026-10-27T05:21:27.2724089Z ##[endgroup]
+2026-10-27T05:21:27.2726004Z Secret source: Actions
+2026-10-27T05:21:27.2726929Z Cache mode: write
+2026-10-27T05:21:27.2727560Z Prepare workflow directory
+2026-10-27T05:21:27.3002011Z Prepare all required actions
+2026-10-27T05:21:27.3060206Z Getting action download info
+2026-10-27T05:21:27.6141615Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-10-27T05:21:27.6907340Z Download action repository 'actions/setup-java@v4' (SHA:cf277c60eb25467037889841efdb72551f06f6c3)
+2026-10-27T05:21:28.3349149Z Download action repository 'gradle/actions@v4' (SHA:ed408507eac070d1f99cc633dbcf757c94c7933a)
+2026-10-27T05:21:29.7823864Z Download action repository 'EndBug/add-and-commit@v9' (SHA:a94899bca583c204427a224a7af87c02f9b325d5)
+2026-10-27T05:21:30.1980147Z Complete job name: Build, sign and publish
