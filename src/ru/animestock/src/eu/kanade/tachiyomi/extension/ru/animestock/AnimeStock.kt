@@ -135,6 +135,7 @@ class AnimeStock(
     // Без жанра ищем по публичному каталогу сайта (Supabase anime_catalog):
     // он покрывает весь сайт, включая альбомы косплея и страницы персонажей.
     // Жанровые теги существуют только в CMS — при выбранном жанре ищем по фидам рубрик.
+    // PostgREST принимает только свои параметры - посторонние (page/q/...) дают 400 PGRST100.
     override fun searchMangaRequest(
         page: Int,
         query: String,
@@ -143,13 +144,38 @@ class AnimeStock(
         val rubric = filters.filterIsInstance<RubricFilter>().firstOrNull()?.selectedRubric ?: RUBRIC_MANGA
         val tag = filters.filterIsInstance<TagFilter>().firstOrNull()?.selectedTag
         if (tag != null) return cmsSearchRequest(page, query, rubric, tag)
-        val builder = "$SB_URL/rest/v1/$SB_TABLE".toHttpUrl().newBuilder()
+        val endpoint = "$SB_URL/rest/v1/$SB_TABLE".toHttpUrl()
+        val builder = endpoint.newBuilder()
         builder.addQueryParameter("select", "title,url,poster")
-        builder.addQueryParameter("limit", SB_LIMIT.toString())
-        builder.addQueryParameter("page", page.toString())
-        builder.addQueryParameter("q", query)
-        builder.addQueryParameter("rubric", rubric.toString())
+        builder.addQueryParameter("limit", (PAGE_SIZE + 1).toString())
+        builder.addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
+        builder.addQueryParameter("order", "created_at.desc")
+        val filter = catalogFilter(rubric, query)
+        builder.addQueryParameter(filter.first, filter.second)
         return GET(builder.build().toString(), catalogHeaders())
+    }
+
+    private fun catalogFilter(
+        rubric: Long,
+        query: String,
+    ): Pair<String, String> {
+        val parts = ArrayList<String>()
+        if (rubric == RUBRIC_MANGA || rubric == RUBRIC_ALL) parts.add("url.ilike.*manga*")
+        if (rubric == RUBRIC_HENTAI || rubric == RUBRIC_ALL) {
+            parts.add("url.ilike.*hentai*")
+            parts.add("url.ilike.*khentay*")
+        }
+        if (rubric == RUBRIC_COSPLAY || rubric == RUBRIC_ALL) {
+            parts.add("url.ilike.*kosple*")
+            parts.add("url.ilike.*stranitsa*")
+        }
+        if (rubric == RUBRIC_MANGA || rubric == RUBRIC_ALL) parts.add("title.ilike.*манга*")
+        if (rubric == RUBRIC_HENTAI || rubric == RUBRIC_ALL) parts.add("title.ilike.*хентай*")
+        if (rubric == RUBRIC_COSPLAY || rubric == RUBRIC_ALL) parts.add("title.ilike.*косплей*")
+        val q = query.replace(Regex("[*(),%]"), "").trim()
+        val tree = parts.joinToString(",")
+        if (q.isNotEmpty()) return "and" to "(or($tree),title.ilike.*$q*)"
+        return "or" to "($tree)"
     }
 
     private fun cmsSearchRequest(
@@ -170,12 +196,10 @@ class AnimeStock(
     }
 
     private fun catalogHeaders(): Headers {
-        val builder = Headers.Builder()
-        builder.add("User-Agent", UA)
-        builder.add("Referer", "$baseUrl/")
-        builder.add("Accept", "application/json")
+        val builder = headersBuilder().newBuilder()
         builder.add("apikey", SB_KEY)
         builder.add("Authorization", "Bearer $SB_KEY")
+        builder.add("Accept", "application/json")
         return builder.build()
     }
 
@@ -186,35 +210,11 @@ class AnimeStock(
     }
 
     private fun catalogSearchParse(response: Response): MangasPage {
-        val url = response.request.url
-        val page = url.queryParameter("page")?.toIntOrNull() ?: 1
-        val query = url.queryParameter("q").orEmpty().trim()
-        val rubric = url.queryParameter("rubric")?.toLongOrNull() ?: RUBRIC_MANGA
         val items = response.parseAs<List<CatalogItemDto>>(json)
-        val withUrl = items.filter { it.url.startsWith("/") }
-        val nonService = withUrl.filter { !SERVICE_PATHS.contains(it.url) }
-        val named = nonService.filter { it.title.length > 2 && !it.title.startsWith("Страница без названия") }
-        val byRubric = named.filter { rubricMatches(it, rubric) }
-        val byQuery = byRubric.filter { query.isEmpty() || it.title.contains(query, ignoreCase = true) }
-        val unique = byQuery.distinctBy { it.url }
-        val from = (page - 1) * PAGE_SIZE
-        val chunk = unique.drop(from).take(PAGE_SIZE)
-        return MangasPage(chunk.map { it.toSManga() }, from + PAGE_SIZE < unique.size)
-    }
-
-    private fun rubricMatches(
-        item: CatalogItemDto,
-        rubric: Long,
-    ): Boolean {
-        if (rubric == RUBRIC_ALL) return true
-        val url = item.url.lowercase()
-        val title = item.title.lowercase()
-        return when (rubric) {
-            RUBRIC_MANGA -> url.contains("/manga") || title.contains("манга")
-            RUBRIC_HENTAI -> url.contains("/hentai") || url.contains("/khentay") || title.contains("хентай")
-            RUBRIC_COSPLAY -> url.contains("kospley") || url.contains("stranitsa") || title.contains("косплей")
-            else -> false
-        }
+        val named = items.filter { it.url.startsWith("/") && it.title.length > 2 && !it.title.startsWith("Страница без названия") }
+        val pageItems = named.distinctBy { it.url }.take(PAGE_SIZE)
+        val hasNext = items.size > PAGE_SIZE
+        return MangasPage(pageItems.map { it.toSManga() }, hasNext)
     }
 
     private fun cmsSearchParse(response: Response): MangasPage {
@@ -483,10 +483,6 @@ class AnimeStock(
         private const val SB_URL = "https://updzooucvimmlzftytke.supabase.co"
         private const val SB_HOST = "updzooucvimmlzftytke.supabase.co"
         private const val SB_TABLE = "anime_catalog"
-        private const val SB_LIMIT = 1000
-        private const val SB_KEY = "sb_publishable_tRNjKezML6kJc74KsNKWKA_Lyxd0k2x"
-        private val SERVICE_PATHS =
-            setOf("/", "/feedback", "/other", "/Nav", "/undress", "/profile", "/models", "/info", "/admin001", "/admin002", "/admin003")
         private const val PAGE_IMAGE_SELECTOR = "img.cli-article__image, .cr-article__content img, .cr-article img"
         private val SITEMAP_BLOCK =
             Regex(
