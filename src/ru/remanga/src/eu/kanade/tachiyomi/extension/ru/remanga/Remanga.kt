@@ -198,15 +198,18 @@ class Remanga(
                 .substringAfter("/api/titles/")
                 .substringBefore("/")
         val details = response.parseAs<DetailsWrapperDto>(json).content
-        val branch =
-            details.branches.filter { it.count_chapters > 0 }.maxByOrNull { it.count_chapters }
-                ?: return emptyList()
+        val branch = details.branches.maxByOrNull { it.count_chapters } ?: return emptyList()
 
         val chapters = ArrayList<ChapterDto>()
         var page = 1
         while (page <= MAX_CHAPTER_PAGES) {
             val request = GET("$api/api/titles/chapters/?branch_id=${branch.id}&page=$page&count=300", headers)
             val part = client.newCall(request).execute()
+            if (!part.isSuccessful) {
+                val code = part.code
+                part.close()
+                throw Exception("Не удалось получить главы (HTTP $code)")
+            }
             val items = part.parseAs<ChaptersWrapperDto>(json).content
             part.close()
             if (items.isEmpty()) break
@@ -389,6 +392,7 @@ class Remanga(
         kotlinx.serialization.json.Json {
             ignoreUnknownKeys = true
             isLenient = true
+            coerceInputValues = true
         }
 
     companion object {
