@@ -172,7 +172,7 @@ class Remanga(
                 addAll((genres + categories).map { it.name })
             }.filter { it.isNotBlank() }.joinToString(", ")
         description = Jsoup.parse(this@toSManga.description.orEmpty()).text()
-        status = parseStatus(status.id)
+        status = parseStatus(this@toSManga.status.id)
         initialized = false
     }
 

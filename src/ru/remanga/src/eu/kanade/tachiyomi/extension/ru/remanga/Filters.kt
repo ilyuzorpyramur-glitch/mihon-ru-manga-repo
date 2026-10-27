@@ -10,7 +10,7 @@ internal class OrderBy :
     ) {
     val ordering: String
         get() {
-            val base = ORDERS[state?.selection ?: 2]
+            val base = ORDERS[state?.index ?: 2]
             return if (state?.ascending == true) base else "-$base"
         }
 
