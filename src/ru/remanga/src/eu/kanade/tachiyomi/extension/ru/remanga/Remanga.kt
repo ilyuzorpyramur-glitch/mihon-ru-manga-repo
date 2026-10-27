@@ -242,8 +242,7 @@ class Remanga(
 
     // =============================== Страницы ===============================
 
-    override fun pageListRequest(chapter: SChapter): Request =
-        GET("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", headers)
+    override fun pageListRequest(chapter: SChapter): Request = GET("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", headers)
 
     override fun pageListParse(response: Response): List<Page> {
         val wrapper = response.parseAs<PagesWrapperDto>(json)
