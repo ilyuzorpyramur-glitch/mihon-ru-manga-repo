@@ -10,10 +10,12 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
-import kotlinx.serialization.json.jsonObject
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -94,12 +96,21 @@ class Remanga(
 
     override fun latestUpdatesParse(response: Response): MangasPage = parseCatalog(response)
 
+    private fun JsonObject?.str(key: String): String = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content ?: ""
+
     private fun parseCatalog(response: Response): MangasPage {
-        val catalog = response.parseAs<CatalogDto>(json)
-        val items = catalog.content.map { it.toSManga() }
-        val hasNext = catalog.props.total_pages?.let { catalog.props.page < it } ?: items.isNotEmpty()
-        return MangasPage(items, hasNext)
+        val root = response.parseAs<JsonElement>(json) as? JsonObject ?: return MangasPage(emptyList(), false)
+        val items = root.arr("content").mapNotNull { el ->
+            (el as? JsonObject)?.let { runCatching { json.decodeFromJsonElement<LibraryDto>(it) }.getOrNull() }
+        }
+        val props = root["props"] as? JsonObject
+        val page = (props?.get("page") as? JsonPrimitive)?.content?.toIntOrNull() ?: 1
+        val total = (props?.get("total_pages") as? JsonPrimitive)?.content?.toIntOrNull()
+        val hasNext = total?.let { page < it } ?: items.isNotEmpty()
+        return MangasPage(items.map { it.toSManga() }, hasNext)
     }
+
+    private fun JsonObject.arr(key: String): JsonArray = (get(key) as? JsonArray) ?: JsonArray(emptyList())
 
     override fun searchMangaRequest(
         page: Int,
@@ -122,7 +133,13 @@ class Remanga(
                 .toString()
                 .contains("/api/search/?")
         if (isSearch) {
-            val results = response.parseAs<List<LibraryDto>>(json)
+            val root = response.parseAs<JsonElement>(json)
+            val arr = root as? JsonArray
+                ?: (root as? JsonObject)?.arr("content")
+                ?: JsonArray(emptyList())
+            val results = arr.mapNotNull { el ->
+                (el as? JsonObject)?.let { runCatching { json.decodeFromJsonElement<LibraryDto>(it) }.getOrNull() }
+            }
             return MangasPage(results.map { it.toSManga() }, results.size >= 20)
         }
         return parseCatalog(response)
@@ -169,11 +186,22 @@ class Remanga(
 
     // Закрытые по лицензии тайтлы отдают content массивом вместо объекта — нужен вход на сайте.
     private fun JsonElement.parseDetails(): DetailsDto {
-        val content = jsonObject["content"]
-        if (content !is JsonObject) {
-            throw IOException("Для просмотра контента необходима авторизация через WebView \uD83C\uDF0E")
-        }
-        return json.decodeFromJsonElement<DetailsDto>(content)
+        val content = (this as? JsonObject)?.get("content") as? JsonObject
+            ?: throw IOException(AUTH_MSG)
+        val safe = JsonObject(
+            content.mapValues { (k, v) ->
+                when (k) {
+                    "img", "type", "status" -> if (v is JsonObject) v else JsonObject(emptyMap())
+                    "genres", "categories", "branches" -> if (v is JsonArray) v else JsonArray(emptyList())
+                    "description", "isEng", "rus_name", "en_name", "main_name", "secondary_name", "another_name" ->
+                        if (v is JsonPrimitive && v.isString) v else JsonPrimitive("")
+                    "avg_rating" -> (v as? JsonPrimitive)?.takeIf { it.isString } ?: JsonPrimitive("0")
+                    "age_limit" -> (v as? JsonPrimitive)?.takeIf { !it.isString } ?: JsonPrimitive(0)
+                    else -> v
+                }
+            },
+        )
+        return json.decodeFromJsonElement<DetailsDto>(safe)
     }
 
     private fun DetailsDto.toSManga(): SManga = SManga.create().apply {
@@ -225,7 +253,10 @@ class Remanga(
                     part.close()
                     throw Exception("Не удалось получить главы (HTTP $code)")
                 }
-                val items = part.parseAs<ChaptersWrapperDto>(json).content
+                val chRoot = part.parseAs<JsonElement>(json) as? JsonObject
+            val items = chRoot.arr("content").mapNotNull { el ->
+                (el as? JsonObject)?.let { runCatching { json.decodeFromJsonElement<ChapterDto>(it) }.getOrNull() }
+            }
                 part.close()
                 if (items.isEmpty()) break
                 chapters += items
@@ -291,13 +322,20 @@ class Remanga(
     override fun pageListRequest(chapter: SChapter): Request = GET("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", headers)
 
     override fun pageListParse(response: Response): List<Page> {
-        val wrapper = response.parseAs<PagesWrapperDto>(json)
-        val pages = wrapper.content.pages
-        if (pages.isEmpty()) {
-            val reason = wrapper.msg?.takeIf { it.isNotBlank() } ?: "Страницы не найдены"
-            throw IOException(reason)
+        val root = response.parseAs<JsonElement>(json) as? JsonObject
+        val msg = root.str("msg")
+        val content = root?.get("content") as? JsonObject
+        if (content == null) {
+            throw IOException(msg.ifBlank { "Глава недоступна (платная или удалена)" })
         }
-        return pages
+        val pages = (content["pages"] as? JsonArray) ?: JsonArray(emptyList())
+        val parsed = pages.mapNotNull { el ->
+            (el as? JsonObject)?.let { runCatching { json.decodeFromJsonElement<PageItemDto>(it) }.getOrNull() }
+        }
+        if (parsed.isEmpty()) {
+            throw IOException(msg.ifBlank { "Страницы не найдены" })
+        }
+        return parsed
             .filter { it.height > MIN_PAGE_HEIGHT }
             .map { dto ->
                 val link = if (dto.link.startsWith("http")) dto.link else site + dto.link
@@ -453,6 +491,7 @@ class Remanga(
         private const val MAX_CHAPTER_PAGES = 20
         private const val MIN_PAGE_HEIGHT = 10
         private const val PAID_MARK = " \uD83D\uDCB2"
+        private const val AUTH_MSG = "Для просмотра контента необходима авторизация через WebView \uD83C\uDF0E"
         private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
     }
 }
