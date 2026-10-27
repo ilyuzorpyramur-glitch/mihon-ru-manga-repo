@@ -172,10 +172,10 @@
   {
     "name": "HenChan",
     "pkg": "eu.kanade.tachiyomi.extension.ru.henchan",
-    "apk": "tachiyomi-ru.henchan-v1.4.47.apk",
+    "apk": "tachiyomi-ru.henchan-v1.4.48.apk",
     "lang": "ru",
-    "code": 104047,
-    "version": "1.4.47",
+    "code": 104048,
+    "version": "1.4.48",
     "nsfw": 1,
     "sources": [
       {
@@ -444,10 +444,10 @@
   {
     "name": "MangaChan",
     "pkg": "eu.kanade.tachiyomi.extension.ru.mangachan",
-    "apk": "tachiyomi-ru.mangachan-v1.4.23.apk",
+    "apk": "tachiyomi-ru.mangachan-v1.4.24.apk",
     "lang": "ru",
-    "code": 104023,
-    "version": "1.4.23",
+    "code": 104024,
+    "version": "1.4.24",
     "nsfw": 0,
     "sources": [
       {
@@ -648,10 +648,10 @@
   {
     "name": "NineGrid",
     "pkg": "eu.kanade.tachiyomi.extension.ru.ninegrid",
-    "apk": "tachiyomi-ru.ninegrid-v1.4.2.apk",
+    "apk": "tachiyomi-ru.ninegrid-v1.4.3.apk",
     "lang": "ru",
-    "code": 104002,
-    "version": "1.4.2",
+    "code": 104003,
+    "version": "1.4.3",
     "nsfw": 0,
     "sources": [
       {
@@ -699,10 +699,10 @@
   {
     "name": "PandaChaika",
     "pkg": "eu.kanade.tachiyomi.extension.ru.pandachaika",
-    "apk": "tachiyomi-ru.pandachaika-v1.4.5.apk",
+    "apk": "tachiyomi-ru.pandachaika-v1.4.6.apk",
     "lang": "ru",
-    "code": 104005,
-    "version": "1.4.5",
+    "code": 104006,
+    "version": "1.4.6",
     "nsfw": 1,
     "sources": [
       {
