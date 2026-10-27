@@ -68,6 +68,23 @@
     ]
   },
   {
+    "name": "AnimeStock",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.animestock",
+    "apk": "tachiyomi-ru.animestock-v1.4.1.apk",
+    "lang": "ru",
+    "code": 104001,
+    "version": "1.4.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "AnimeStock",
+        "lang": "ru",
+        "id": "9205683393119254565",
+        "baseUrl": "https://animestock.ru"
+      }
+    ]
+  },
+  {
     "name": "AstraManga",
     "pkg": "eu.kanade.tachiyomi.extension.ru.astramanga",
     "apk": "tachiyomi-ru.astramanga-v1.4.3.apk",
