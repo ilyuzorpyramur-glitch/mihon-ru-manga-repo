@@ -195,7 +195,7 @@ class AnimeStock(
             ?.attr("content")
             ?.takeIf { it.isNotEmpty() }
 
-        val subRubricId = Regex("""data-heading-id="(\d{3,})"""").find(html)?.groupValues?.get(1)?.toLongOrNull()
+        val subRubricId = Regex("data-heading-id=\"(\\d{3,})\"").find(html)?.groupValues?.get(1)?.toLongOrNull()
         if (subRubricId != null) {
             val articles = runCatching { fetchArticles(subRubricId, page = 1, limit = SUB_RUBRIC_LIMIT) }
                 .getOrDefault(emptyList())
