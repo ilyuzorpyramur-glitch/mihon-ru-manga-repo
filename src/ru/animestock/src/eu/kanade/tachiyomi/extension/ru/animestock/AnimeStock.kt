@@ -35,7 +35,9 @@ import kotlin.time.Duration.Companion.seconds
  * Сортировок у API нет, поэтому «Популярное» — рубрика «Манга»,
  * а «Последнее» — объединённая лента «Манга» + «Хентай» по дате.
  * Каждый пост = один выпуск: одна длинная полоса — img.cli-article__image.
- * Поискового API у сайта нет — поиск делается в памяти по загруженному списку.
+ * Поискового API у CMS нет: без жанра поиск идёт по публичному каталогу сайта
+ * (Supabase anime_catalog — 700+ записей с постерами, ключ publishable из фронтенда),
+ * при выбранном жанре — по фидам рубрик CMS с параметром tags.
  * Страницы-подборки (альбомы моделей/персонажей) несут свою рубрику
  * (data-heading-id): её посты становятся главами — так доступны все фото.
  * Для альбомов косплея без своей рубрики посты собираются по sitemap-префиксу.
@@ -47,13 +49,13 @@ class AnimeStock(
     override val lang: String,
     override val id: Long,
 ) : HttpSource() {
-
     override val supportsLatest = true
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
 
     private var sitemapCache: List<Pair<String, Long>>? = null
 
@@ -73,7 +75,14 @@ class AnimeStock(
 
     // =============================== Каталог ===============================
 
-    private fun articlesUrl(rubricId: Long, page: Int, tagId: Long? = null, limit: Int = PAGE_SIZE + 1): HttpUrl = "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
+    private fun articlesUrl(
+        rubricId: Long,
+        page: Int,
+        tagId: Long? = null,
+        limit: Int = PAGE_SIZE + 1,
+    ): HttpUrl = "$baseUrl$API_PATH/rubrics/$rubricId/articles/"
+        .toHttpUrl()
+        .newBuilder()
         .addQueryParameter("limit", limit.toString())
         .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
         .addQueryParameter("deleted", "false")
@@ -81,7 +90,11 @@ class AnimeStock(
         .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
         .build()
 
-    private fun fetchArticles(rubricId: Long, page: Int, limit: Int = PAGE_SIZE + 1): List<ArticleDto> {
+    private fun fetchArticles(
+        rubricId: Long,
+        page: Int,
+        limit: Int = PAGE_SIZE + 1,
+    ): List<ArticleDto> {
         val request = GET(articlesUrl(rubricId, page, limit = limit).toString(), headers)
         val response = client.newCall(request).execute()
         val articles = response.parseAs<List<ArticleDto>>(json)
@@ -97,7 +110,10 @@ class AnimeStock(
 
     // «Последнее» — вся лента сайта: Манга + Хентай, слитно по дате публикации
     override fun latestUpdatesParse(response: Response): MangasPage {
-        val offset = response.request.url.queryParameter("offset")?.toIntOrNull() ?: 0
+        val offset =
+            response.request.url
+                .queryParameter("offset")
+                ?.toIntOrNull() ?: 0
         val page = offset / PAGE_SIZE + 1
         val manga = fetchArticles(RUBRIC_MANGA, page)
         val hentai = runCatching { fetchArticles(RUBRIC_HENTAI, page) }.getOrDefault(emptyList())
@@ -116,21 +132,90 @@ class AnimeStock(
     // Поискового API нет: грузим списки рубрик целиком и фильтруем в памяти.
     // Страница и параметры переносятся в query самого запроса.
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+    // Без жанра ищем по публичному каталогу сайта (Supabase anime_catalog):
+    // он покрывает весь сайт, включая альбомы косплея и страницы персонажей.
+    // Жанровые теги существуют только в CMS — при выбранном жанре ищем по фидам рубрик.
+    override fun searchMangaRequest(
+        page: Int,
+        query: String,
+        filters: FilterList,
+    ): Request {
         val rubric = filters.filterIsInstance<RubricFilter>().firstOrNull()?.selectedRubric ?: RUBRIC_MANGA
         val tag = filters.filterIsInstance<TagFilter>().firstOrNull()?.selectedTag
+        if (tag != null) return cmsSearchRequest(page, query, rubric, tag)
+        val builder = "$SB_URL/rest/v1/$SB_TABLE".toHttpUrl().newBuilder()
+        builder.addQueryParameter("select", "title,url,poster")
+        builder.addQueryParameter("limit", SB_LIMIT.toString())
+        builder.addQueryParameter("page", page.toString())
+        builder.addQueryParameter("q", query)
+        builder.addQueryParameter("rubric", rubric.toString())
+        return GET(builder.build().toString(), catalogHeaders())
+    }
+
+    private fun cmsSearchRequest(
+        page: Int,
+        query: String,
+        rubric: Long,
+        tag: String,
+    ): Request {
         val rubrics = if (rubric == RUBRIC_ALL) SEARCH_RUBRICS.toList() else listOf(rubric)
         val first = rubrics.first()
-        val base = articlesUrl(first, page = 1, tagId = tag?.let { SITE_TAGS[it]?.get(first) }, limit = SEARCH_LIMIT)
+        val base = articlesUrl(first, page = 1, tagId = SITE_TAGS[tag]?.get(first), limit = SEARCH_LIMIT)
         val builder = base.newBuilder()
         builder.addQueryParameter("page", page.toString())
         builder.addQueryParameter("q", query)
-        builder.addQueryParameter("tag", tag.orEmpty())
+        builder.addQueryParameter("tag", tag)
         builder.addQueryParameter("rubrics", rubrics.joinToString(","))
         return GET(builder.build().toString(), headers)
     }
 
+    private fun catalogHeaders(): Headers {
+        val builder = headersBuilder().newBuilder()
+        builder.add("apikey", SB_KEY)
+        builder.add("Authorization", "Bearer $SB_KEY")
+        builder.add("Accept", "application/json")
+        return builder.build()
+    }
+
     override fun searchMangaParse(response: Response): MangasPage {
+        val isCatalog = response.request.url.host == SB_HOST
+        if (isCatalog) return catalogSearchParse(response)
+        return cmsSearchParse(response)
+    }
+
+    private fun catalogSearchParse(response: Response): MangasPage {
+        val url = response.request.url
+        val page = url.queryParameter("page")?.toIntOrNull() ?: 1
+        val query = url.queryParameter("q").orEmpty().trim()
+        val rubric = url.queryParameter("rubric")?.toLongOrNull() ?: RUBRIC_MANGA
+        val items = response.parseAs<List<CatalogItemDto>>(json)
+        val withUrl = items.filter { it.url.startsWith("/") }
+        val nonService = withUrl.filter { !SERVICE_PATHS.contains(it.url) }
+        val named = nonService.filter { it.title.length > 2 && !it.title.startsWith("Страница без названия") }
+        val byRubric = named.filter { rubricMatches(it, rubric) }
+        val byQuery = byRubric.filter { query.isEmpty() || it.title.contains(query, ignoreCase = true) }
+        val unique = byQuery.distinctBy { it.url }
+        val from = (page - 1) * PAGE_SIZE
+        val chunk = unique.drop(from).take(PAGE_SIZE)
+        return MangasPage(chunk.map { it.toSManga() }, from + PAGE_SIZE < unique.size)
+    }
+
+    private fun rubricMatches(
+        item: CatalogItemDto,
+        rubric: Long,
+    ): Boolean {
+        if (rubric == RUBRIC_ALL) return true
+        val url = item.url.lowercase()
+        val title = item.title.lowercase()
+        return when (rubric) {
+            RUBRIC_MANGA -> url.contains("/manga") || title.contains("манга")
+            RUBRIC_HENTAI -> url.contains("/hentai") || url.contains("/khentay") || title.contains("хентай")
+            RUBRIC_COSPLAY -> url.contains("kospley") || url.contains("stranitsa") || title.contains("косплей")
+            else -> false
+        }
+    }
+
+    private fun cmsSearchParse(response: Response): MangasPage {
         val url = response.request.url
         val page = url.queryParameter("page")?.toIntOrNull() ?: 1
         val query = url.queryParameter("q").orEmpty().trim()
@@ -189,7 +274,12 @@ class AnimeStock(
         val meta = document.selectFirst("meta[property=article:published_time], time[datetime]")
         val publishedAt = meta?.attr("content")?.takeIf { it.isNotEmpty() }
 
-        val subRubricId = Regex("data-heading-id=\"(\\d{3,})\"").find(html)?.groupValues?.get(1)?.toLongOrNull()
+        val subRubricId =
+            Regex("data-heading-id=\"(\\d{3,})\"")
+                .find(html)
+                ?.groupValues
+                ?.get(1)
+                ?.toLongOrNull()
         if (subRubricId != null) {
             val fetched = runCatching { fetchArticles(subRubricId, page = 1, limit = SUB_RUBRIC_LIMIT) }
             val subArticles = fetched.getOrDefault(emptyList())
@@ -212,7 +302,10 @@ class AnimeStock(
         return listOf(single)
     }
 
-    private fun chapterFromArticle(article: ArticleDto, index: Int): SChapter {
+    private fun chapterFromArticle(
+        article: ArticleDto,
+        index: Int,
+    ): SChapter {
         val name = article.name.trim().ifEmpty { "Фото $index" }
         val chapter = SChapter.create()
         chapter.url = article.url
@@ -228,7 +321,10 @@ class AnimeStock(
         return raw.replace(',', '.').toFloatOrNull() ?: -1f
     }
 
-    private fun cosplayAlbumChapters(title: String, albumPath: String): List<SChapter> {
+    private fun cosplayAlbumChapters(
+        title: String,
+        albumPath: String,
+    ): List<SChapter> {
         val slug = slugify(title.substringBefore("/").trim())
         if (slug.length < 3) return emptyList()
         val all = sitemapEntries()
@@ -238,7 +334,11 @@ class AnimeStock(
         return ordered.mapIndexed { index, (postPath, lastmod) -> albumChapter(postPath, lastmod, index) }
     }
 
-    private fun albumChapterMatch(postPath: String, slug: String, albumPath: String): Boolean {
+    private fun albumChapterMatch(
+        postPath: String,
+        slug: String,
+        albumPath: String,
+    ): Boolean {
         val segments = postPath.trim('/').split('/')
         if (segments.size != 2) return false
         if (!segments.first().startsWith(slug)) return false
@@ -246,7 +346,11 @@ class AnimeStock(
         return !postPath.equals(albumPath, ignoreCase = true)
     }
 
-    private fun albumChapter(postPath: String, lastmod: Long, index: Int): SChapter {
+    private fun albumChapter(
+        postPath: String,
+        lastmod: Long,
+        index: Int,
+    ): SChapter {
         val lastSegment = postPath.trim('/').substringAfterLast('/')
         val uuidLike = lastSegment.length == 36 && lastSegment.count { it == '-' } == 4
         val words = lastSegment.split('-').map { it.replaceFirstChar { c -> c.uppercase() } }
@@ -332,7 +436,31 @@ class AnimeStock(
     }
 
     @Serializable
-    private data class RubricDto(val id: Long = 0, val name: String = "")
+    private data class RubricDto(
+        val id: Long = 0,
+        val name: String = "",
+    )
+
+    @Serializable
+    private data class CatalogItemDto(
+        val title: String = "",
+        val url: String = "",
+        val poster: String = "",
+    )
+
+    private fun CatalogItemDto.toSManga(): SManga {
+        val cleanTitle =
+            title
+                .replace(Regex("\\s*/AnimeStock.*$"), "")
+                .replace(Regex("\\s*:\\s*Слив Косплея.*$"), "")
+                .trim()
+        val manga = SManga.create()
+        manga.url = url
+        manga.title = cleanTitle
+        manga.thumbnail_url = poster.takeIf { it.startsWith("http") }
+        manga.initialized = false
+        return manga
+    }
 
     @Serializable
     private data class ArticleDto(
@@ -350,10 +478,17 @@ class AnimeStock(
         private const val PAGE_SIZE = 20
         private const val SEARCH_LIMIT = 90
         private const val SUB_RUBRIC_LIMIT = 100
+        private const val SB_URL = "https://updzooucvimmlzftytke.supabase.co"
+        private const val SB_HOST = "updzooucvimmlzftytke.supabase.co"
+        private const val SB_TABLE = "anime_catalog"
+        private const val SB_LIMIT = 1000
+        private val SERVICE_PATHS =
+            setOf("/", "/feedback", "/other", "/Nav", "/undress", "/profile", "/models", "/info", "/admin001", "/admin002", "/admin003")
         private const val PAGE_IMAGE_SELECTOR = "img.cli-article__image, .cr-article__content img, .cr-article img"
-        private val SITEMAP_BLOCK = Regex(
-            "<loc>([^<]+)</loc>[^<]*(?:<lastmod>([^<]*)</lastmod>)?",
-            RegexOption.DOT_MATCHES_ALL,
-        )
+        private val SITEMAP_BLOCK =
+            Regex(
+                "<loc>([^<]+)</loc>[^<]*(?:<lastmod>([^<]*)</lastmod>)?",
+                RegexOption.DOT_MATCHES_ALL,
+            )
     }
 }
