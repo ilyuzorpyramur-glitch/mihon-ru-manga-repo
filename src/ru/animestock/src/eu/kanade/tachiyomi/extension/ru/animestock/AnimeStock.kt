@@ -73,14 +73,13 @@ class AnimeStock(
 
     // =============================== Каталог ===============================
 
-    private fun articlesUrl(rubricId: Long, page: Int, tagId: Long? = null, limit: Int = PAGE_SIZE + 1): HttpUrl =
-        "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
-            .addQueryParameter("limit", limit.toString())
-            .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
-            .addQueryParameter("deleted", "false")
-            .addQueryParameter("published", "true")
-            .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
-            .build()
+    private fun articlesUrl(rubricId: Long, page: Int, tagId: Long? = null, limit: Int = PAGE_SIZE + 1): HttpUrl = "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
+        .addQueryParameter("limit", limit.toString())
+        .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
+        .addQueryParameter("deleted", "false")
+        .addQueryParameter("published", "true")
+        .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
+        .build()
 
     private fun fetchArticles(rubricId: Long, page: Int, limit: Int = PAGE_SIZE + 1): List<ArticleDto> {
         val request = GET(articlesUrl(rubricId, page, limit = limit).toString(), headers)
