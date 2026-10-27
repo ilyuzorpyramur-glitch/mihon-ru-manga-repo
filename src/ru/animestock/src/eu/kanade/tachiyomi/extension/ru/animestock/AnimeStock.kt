@@ -170,10 +170,12 @@ class AnimeStock(
     }
 
     private fun catalogHeaders(): Headers {
-        val builder = headersBuilder().newBuilder()
+        val builder = Headers.Builder()
+        builder.add("User-Agent", UA)
+        builder.add("Referer", "$baseUrl/")
+        builder.add("Accept", "application/json")
         builder.add("apikey", SB_KEY)
         builder.add("Authorization", "Bearer $SB_KEY")
-        builder.add("Accept", "application/json")
         return builder.build()
     }
 
@@ -482,6 +484,7 @@ class AnimeStock(
         private const val SB_HOST = "updzooucvimmlzftytke.supabase.co"
         private const val SB_TABLE = "anime_catalog"
         private const val SB_LIMIT = 1000
+        private const val SB_KEY = "sb_publishable_tRNjKezML6kJc74KsNKWKA_Lyxd0k2x"
         private val SERVICE_PATHS =
             setOf("/", "/feedback", "/other", "/Nav", "/undress", "/profile", "/models", "/info", "/admin001", "/admin002", "/admin003")
         private const val PAGE_IMAGE_SELECTOR = "img.cli-article__image, .cr-article__content img, .cr-article img"
