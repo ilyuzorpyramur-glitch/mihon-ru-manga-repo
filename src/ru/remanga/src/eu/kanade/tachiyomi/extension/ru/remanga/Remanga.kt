@@ -10,6 +10,10 @@ import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -158,9 +162,18 @@ class Remanga(
     override fun mangaDetailsRequest(manga: SManga): Request = GET(api + manga.url, headers)
 
     override fun mangaDetailsParse(response: Response): SManga {
-        val wrapper = response.parseAs<DetailsWrapperDto>(json)
-        branchesCache[wrapper.content.dir] = wrapper.content.branches
-        return wrapper.content.toSManga()
+        val details = response.parseAs<JsonElement>(json).parseDetails()
+        branchesCache[details.dir] = details.branches
+        return details.toSManga()
+    }
+
+    // Закрытые по лицензии тайтлы отдают content массивом вместо объекта — нужен вход на сайте.
+    private fun JsonElement.parseDetails(): DetailsDto {
+        val content = jsonObject["content"]
+        if (content !is JsonObject) {
+            throw IOException("Для просмотра контента необходима авторизация через WebView \uD83C\uDF0E")
+        }
+        return json.decodeFromJsonElement<DetailsDto>(content)
     }
 
     private fun DetailsDto.toSManga(): SManga = SManga.create().apply {
@@ -239,7 +252,7 @@ class Remanga(
     ): BranchDto? {
         val cached = branchesCache[dir]
         if (cached != null) return cached.maxByOrNull { it.count_chapters }
-        val details = client.newCall(GET(api + manga.url, headers)).execute().parseAs<DetailsWrapperDto>(json).content
+        val details = client.newCall(GET(api + manga.url, headers)).execute().parseAs<JsonElement>(json).parseDetails()
         branchesCache[details.dir] = details.branches
         return details.branches.maxByOrNull { it.count_chapters }
     }
