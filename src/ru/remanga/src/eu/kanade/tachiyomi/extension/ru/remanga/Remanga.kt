@@ -109,7 +109,7 @@ class Remanga(
         return MangasPage(items.map { it.toSManga() }, hasNext)
     }
 
-    private fun JsonObject.arr(key: String): JsonArray = (get(key) as? JsonArray) ?: JsonArray(emptyList())
+    private fun JsonObject?.arr(key: String): JsonArray = (this?.get(key) as? JsonArray) ?: JsonArray(emptyList())
 
     override fun searchMangaRequest(
         page: Int,
