@@ -1,77 +1,77 @@
-﻿2026-10-27T02:48:04.6986873Z ##[group]Run actions/checkout@v4
-2026-10-27T02:48:04.6987576Z with:
-2026-10-27T02:48:04.6988340Z   fetch-depth: 0
-2026-10-27T02:48:04.6989034Z   repository: ***pyramur-glitch/mihon-ru-manga-repo
-2026-10-27T02:48:04.6992342Z   token: ***
-2026-10-27T02:48:04.6992811Z   ssh-strict: true
-2026-10-27T02:48:04.6993178Z   ssh-user: git
-2026-10-27T02:48:04.6993564Z   persist-credentials: true
-2026-10-27T02:48:04.6993967Z   clean: true
-2026-10-27T02:48:04.6994376Z   sparse-checkout-cone-mode: true
-2026-10-27T02:48:04.6994822Z   fetch-tags: false
-2026-10-27T02:48:04.6995173Z   show-progress: true
-2026-10-27T02:48:04.6995589Z   lfs: false
-2026-10-27T02:48:04.6995916Z   submodules: false
-2026-10-27T02:48:04.6996266Z   set-safe-directory: true
-2026-10-27T02:48:04.6996737Z   allow-unsafe-pr-checkout: false
-2026-10-27T02:48:04.6997455Z ##[endgroup]
-2026-10-27T02:48:04.8024323Z Syncing repository: ***pyramur-glitch/mihon-ru-manga-repo
-2026-10-27T02:48:04.8026112Z ##[group]Getting Git version info
-2026-10-27T02:48:04.8026760Z Working directory is '/home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo'
-2026-10-27T02:48:04.8027730Z [command]/usr/bin/git version
-2026-10-27T02:48:04.8341699Z git version 2.55.0
-2026-10-27T02:48:04.8373971Z ##[endgroup]
-2026-10-27T02:48:04.8384069Z Temporarily overriding HOME='/home/runner/work/_temp/fc3d50b4-7275-4771-ad0d-b0636068668b' before making global git config changes
-2026-10-27T02:48:04.8385698Z Adding repository directory to the temporary git global config as a safe directory
-2026-10-27T02:48:04.8387142Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo
-2026-10-27T02:48:04.8765147Z Deleting the contents of '/home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo'
-2026-10-27T02:48:04.8770977Z ##[group]Initializing the repository
-2026-10-27T02:48:04.8776353Z [command]/usr/bin/git init /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo
-2026-10-27T02:48:04.9477868Z hint: Using 'master' as the name for the initial branch. This default branch name
-2026-10-27T02:48:04.9478978Z hint: will change to "main" in Git 3.0. To configure the initial branch name
-2026-10-27T02:48:04.9480010Z hint: to use in all of your new repositories, which will suppress this warning,
-2026-10-27T02:48:04.9480738Z hint: call:
-2026-10-27T02:48:04.9481504Z hint:
-2026-10-27T02:48:04.9482096Z hint: 	git config --global init.defaultBranch <name>
-2026-10-27T02:48:04.9483163Z hint:
-2026-10-27T02:48:04.9483641Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
-2026-10-27T02:48:04.9484366Z hint: 'development'. The just-created branch can be renamed via this command:
-2026-10-27T02:48:04.9485091Z hint:
-2026-10-27T02:48:04.9485694Z hint: 	git branch -m <name>
-2026-10-27T02:48:04.9486303Z hint:
-2026-10-27T02:48:04.9487011Z hint: Disable this message with "git config set advice.defaultBranchName false"
-2026-10-27T02:48:04.9488524Z Initialized empty Git repository in /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo/.git/
-2026-10-27T02:48:04.9499490Z [command]/usr/bin/git remote add origin https://github.com/***pyramur-glitch/mihon-ru-manga-repo
-2026-10-27T02:48:04.9963612Z ##[endgroup]
-2026-10-27T02:48:04.9964457Z ##[group]Disabling automatic garbage collection
-2026-10-27T02:48:04.9968097Z [command]/usr/bin/git config --local gc.auto 0
-2026-10-27T02:48:05.0065749Z ##[endgroup]
-2026-10-27T02:48:05.0066457Z ##[group]Setting up auth
-2026-10-27T02:48:05.0072897Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-10-27T02:48:05.0104052Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-10-27T02:48:05.0693370Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-10-27T02:48:05.0727892Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-10-27T02:48:05.0937875Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-10-27T02:48:05.0981875Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-10-27T02:48:05.1198376Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
-2026-10-27T02:48:05.2563799Z ##[endgroup]
-2026-10-27T02:48:05.2565462Z ##[group]Fetching the repository
-2026-10-27T02:48:05.2579393Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
-2026-10-27T02:48:06.9950716Z From https://github.com/***pyramur-glitch/mihon-ru-manga-repo
-2026-10-27T02:48:06.9952296Z  * [new branch]      main       -> origin/main
-2026-10-27T02:48:06.9960987Z [command]/usr/bin/git branch --list --remote origin/main
-2026-10-27T02:48:06.9992783Z   origin/main
-2026-10-27T02:48:06.9997311Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
-2026-10-27T02:48:07.0020446Z ce88576275793af8baa55df00f9f6779680e64ce
-2026-10-27T02:48:07.0023796Z ##[endgroup]
-2026-10-27T02:48:07.0024668Z ##[group]Determining the checkout info
-2026-10-27T02:48:07.0025662Z ##[endgroup]
-2026-10-27T02:48:07.0030482Z [command]/usr/bin/git sparse-checkout disable
-2026-10-27T02:48:07.1062918Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
-2026-10-27T02:48:07.1257371Z ##[group]Checking out the ref
-2026-10-27T02:48:07.1261613Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
-2026-10-27T02:48:07.3360138Z Switched to a new branch 'main'
-2026-10-27T02:48:07.3655953Z branch 'main' set up to track 'origin/main'.
-2026-10-27T02:48:07.3664788Z ##[endgroup]
-2026-10-27T02:48:07.3710404Z [command]/usr/bin/git log -1 --format=%H
-2026-10-27T02:48:07.3735759Z ce88576275793af8baa55df00f9f6779680e64ce
+﻿2026-10-27T03:08:30.3071863Z ##[group]Run actions/checkout@v4
+2026-10-27T03:08:30.3073122Z with:
+2026-10-27T03:08:30.3073633Z   fetch-depth: 0
+2026-10-27T03:08:30.3074690Z   repository: ***pyramur-glitch/mihon-ru-manga-repo
+2026-10-27T03:08:30.3079839Z   token: ***
+2026-10-27T03:08:30.3080372Z   ssh-strict: true
+2026-10-27T03:08:30.3080992Z   ssh-user: git
+2026-10-27T03:08:30.3081497Z   persist-credentials: true
+2026-10-27T03:08:30.3082151Z   clean: true
+2026-10-27T03:08:30.3082659Z   sparse-checkout-cone-mode: true
+2026-10-27T03:08:30.3083368Z   fetch-tags: false
+2026-10-27T03:08:30.3083895Z   show-progress: true
+2026-10-27T03:08:30.3084619Z   lfs: false
+2026-10-27T03:08:30.3085149Z   submodules: false
+2026-10-27T03:08:30.3085841Z   set-safe-directory: true
+2026-10-27T03:08:30.3086415Z   allow-unsafe-pr-checkout: false
+2026-10-27T03:08:30.3087543Z ##[endgroup]
+2026-10-27T03:08:30.7973950Z Syncing repository: ***pyramur-glitch/mihon-ru-manga-repo
+2026-10-27T03:08:30.7978575Z ##[group]Getting Git version info
+2026-10-27T03:08:30.7987348Z Working directory is '/home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo'
+2026-10-27T03:08:30.7991535Z [command]/usr/bin/git version
+2026-10-27T03:08:30.8036035Z git version 2.55.0
+2026-10-27T03:08:30.8065368Z ##[endgroup]
+2026-10-27T03:08:30.8086040Z Temporarily overriding HOME='/home/runner/work/_temp/70137f73-d92f-4663-bea4-ed984ddd6973' before making global git config changes
+2026-10-27T03:08:30.8091842Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-27T03:08:30.8098503Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo
+2026-10-27T03:08:30.8219988Z Deleting the contents of '/home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo'
+2026-10-27T03:08:30.8237101Z ##[group]Initializing the repository
+2026-10-27T03:08:30.8240374Z [command]/usr/bin/git init /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo
+2026-10-27T03:08:30.8387070Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-27T03:08:30.8392947Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-27T03:08:30.8397660Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-27T03:08:30.8400360Z hint: call:
+2026-10-27T03:08:30.8401780Z hint:
+2026-10-27T03:08:30.8403703Z hint: 	git config --global init.defaultBranch <name>
+2026-10-27T03:08:30.8406221Z hint:
+2026-10-27T03:08:30.8408468Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-27T03:08:30.8412134Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-27T03:08:30.8415844Z hint:
+2026-10-27T03:08:30.8417630Z hint: 	git branch -m <name>
+2026-10-27T03:08:30.8419631Z hint:
+2026-10-27T03:08:30.8422139Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-27T03:08:30.8426988Z Initialized empty Git repository in /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo/.git/
+2026-10-27T03:08:30.8433138Z [command]/usr/bin/git remote add origin https://github.com/***pyramur-glitch/mihon-ru-manga-repo
+2026-10-27T03:08:30.8480553Z ##[endgroup]
+2026-10-27T03:08:30.8507875Z ##[group]Disabling automatic garbage collection
+2026-10-27T03:08:30.8528317Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-27T03:08:30.8536003Z ##[endgroup]
+2026-10-27T03:08:30.8539359Z ##[group]Setting up auth
+2026-10-27T03:08:30.8542720Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-27T03:08:30.8598051Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-27T03:08:30.9288525Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-27T03:08:30.9332060Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-27T03:08:30.9613541Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-27T03:08:30.9670054Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-27T03:08:30.9915962Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-27T03:08:30.9964331Z ##[endgroup]
+2026-10-27T03:08:30.9967721Z ##[group]Fetching the repository
+2026-10-27T03:08:30.9981902Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-10-27T03:08:31.5116825Z From https://github.com/***pyramur-glitch/mihon-ru-manga-repo
+2026-10-27T03:08:31.5120505Z  * [new branch]      main       -> origin/main
+2026-10-27T03:08:31.5125986Z [command]/usr/bin/git branch --list --remote origin/main
+2026-10-27T03:08:31.5154160Z   origin/main
+2026-10-27T03:08:31.5168109Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-10-27T03:08:31.5203682Z 88d8fcad342e4408414c21a59b27723de3786d13
+2026-10-27T03:08:31.5209853Z ##[endgroup]
+2026-10-27T03:08:31.5212567Z ##[group]Determining the checkout info
+2026-10-27T03:08:31.5216006Z ##[endgroup]
+2026-10-27T03:08:31.5217226Z [command]/usr/bin/git sparse-checkout disable
+2026-10-27T03:08:31.5282756Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-27T03:08:31.5323174Z ##[group]Checking out the ref
+2026-10-27T03:08:31.5326714Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-10-27T03:08:31.6404846Z Switched to a new branch 'main'
+2026-10-27T03:08:31.6409787Z branch 'main' set up to track 'origin/main'.
+2026-10-27T03:08:31.6420052Z ##[endgroup]
+2026-10-27T03:08:31.6469196Z [command]/usr/bin/git log -1 --format=%H
+2026-10-27T03:08:31.6497558Z 88d8fcad342e4408414c21a59b27723de3786d13

@@ -1,19 +1,19 @@
-﻿2026-10-27T02:49:15.9252129Z Post job cleanup.
-2026-10-27T02:49:16.1827586Z In post-action step
-2026-10-27T02:49:16.1840591Z ##[group]Stopping Gradle daemons
-2026-10-27T02:49:16.1841823Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1
-2026-10-27T02:49:16.1857342Z [command]/home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/bin/gradle --stop
-2026-10-27T02:49:16.7384570Z No Gradle daemons are running.
-2026-10-27T02:49:16.7451618Z ##[endgroup]
-2026-10-27T02:49:16.7452867Z Not performing cache-cleanup due to build failure
-2026-10-27T02:49:16.7453596Z ##[group]Caching Gradle state
-2026-10-27T02:49:16.7707236Z Not saving configuration-cache state, as no encryption key was provided
-2026-10-27T02:49:17.6905168Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
-2026-10-27T02:49:19.5215002Z Sent 1945988 of 1945988 (100.0%), 4.8 MBs/sec
-2026-10-27T02:49:19.6828445Z Saved cache entry with key gradle-kotlin-dsl-v1-b19c39ae7d188abdc822a37b914125d1 from /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 2341ms
-2026-10-27T02:49:21.1918455Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
-2026-10-27T02:49:22.2311545Z Sent 30927954 of 30927954 (100.0%), 41.3 MBs/sec
-2026-10-27T02:49:22.3930163Z Saved cache entry with key gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-ce88576275793af8baa55df00f9f6779680e64ce from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1210ms
-2026-10-27T02:49:22.3931748Z ##[endgroup]
-2026-10-27T02:49:22.3938050Z Generating Job Summary
-2026-10-27T02:49:22.3949604Z Completed post-action step
+﻿2026-10-27T03:09:51.9490064Z Post job cleanup.
+2026-10-27T03:09:52.2105562Z In post-action step
+2026-10-27T03:09:52.2120480Z ##[group]Stopping Gradle daemons
+2026-10-27T03:09:52.2122257Z Stopping Gradle daemons for /home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1
+2026-10-27T03:09:52.2139347Z [command]/home/runner/.gradle/wrapper/dists/gradle-9.7.1-bin/1w1c7tv4s851m17nbqdsro2tv/gradle-9.7.1/bin/gradle --stop
+2026-10-27T03:09:52.9052662Z No Gradle daemons are running.
+2026-10-27T03:09:52.9141620Z ##[endgroup]
+2026-10-27T03:09:52.9144342Z Not performing cache-cleanup due to build failure
+2026-10-27T03:09:52.9145816Z ##[group]Caching Gradle state
+2026-10-27T03:09:52.9459268Z Not saving configuration-cache state, as no encryption key was provided
+2026-10-27T03:09:54.0504274Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
+2026-10-27T03:09:55.3907793Z Sent 1965290 of 1965290 (100.0%), 16.0 MBs/sec
+2026-10-27T03:09:55.4949758Z Saved cache entry with key gradle-kotlin-dsl-v1-d8daeae8b6ce4129983d0a357e621128 from /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 1895ms
+2026-10-27T03:09:56.5931520Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/mihon-ru-manga-repo/mihon-ru-manga-repo --files-from manifest.txt --use-compress-program zstdmt
+2026-10-27T03:09:57.8328989Z Sent 30946772 of 30946772 (100.0%), 29.5 MBs/sec
+2026-10-27T03:09:58.1643824Z Saved cache entry with key gradle-home-v1|Linux-X64|build[26c1837aa191ba4e7cc3e0969a4fc998]-88d8fcad342e4408414c21a59b27723de3786d13 from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1583ms
+2026-10-27T03:09:58.1645733Z ##[endgroup]
+2026-10-27T03:09:58.1652959Z Generating Job Summary
+2026-10-27T03:09:58.1667124Z Completed post-action step
