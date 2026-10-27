@@ -12,7 +12,6 @@ import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -254,9 +253,9 @@ class Remanga(
                     throw Exception("Не удалось получить главы (HTTP $code)")
                 }
                 val chRoot = part.parseAs<JsonElement>(json) as? JsonObject
-            val items = chRoot.arr("content").mapNotNull { el ->
-                (el as? JsonObject)?.let { runCatching { json.decodeFromJsonElement<ChapterDto>(it) }.getOrNull() }
-            }
+                val items = chRoot.arr("content").mapNotNull { el ->
+                    (el as? JsonObject)?.let { runCatching { json.decodeFromJsonElement<ChapterDto>(it) }.getOrNull() }
+                }
                 part.close()
                 if (items.isEmpty()) break
                 chapters += items
