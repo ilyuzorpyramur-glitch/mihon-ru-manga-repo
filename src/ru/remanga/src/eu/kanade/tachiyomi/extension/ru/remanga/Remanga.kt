@@ -17,10 +17,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.math.absoluteValue
 import kotlin.random.Random
+import rx.Observable
 
 /**
  * Remanga (remanga.org) — сгенерировано extension-forge, доведено вручную.
@@ -45,6 +47,8 @@ class Remanga(
 
     private val api = "https://api.remanga.org"
     private val site = baseUrl
+
+    private val branchesCache = mutableMapOf<String, List<BranchDto>>()
 
     private val randomizer = Random.nextInt().absoluteValue.toString()
 
@@ -155,6 +159,7 @@ class Remanga(
 
     override fun mangaDetailsParse(response: Response): SManga {
         val wrapper = response.parseAs<DetailsWrapperDto>(json)
+        branchesCache[wrapper.content.dir] = wrapper.content.branches
         return wrapper.content.toSManga()
     }
 
@@ -176,7 +181,7 @@ class Remanga(
         initialized = false
     }
 
-    private fun pickName(dto: DetailsDto): String = if (dto.isEng == "rus") dto.rus_name else dto.en_name.ifBlank { dto.rus_name }
+    private fun pickName(dto: DetailsDto): String = if (dto.isEng == "rus") dto.rus_name.ifBlank { dto.main_name } else dto.en_name.ifBlank { dto.secondary_name.ifBlank { dto.rus_name } }
 
     private fun parseStatus(statusId: Int): Int = when (statusId) {
         0 -> SManga.COMPLETED
@@ -185,62 +190,87 @@ class Remanga(
         3 -> SManga.ON_HIATUS
         4 -> SManga.ONGOING
         5 -> SManga.LICENSED
+        6 -> SManga.LICENSED
         else -> SManga.UNKNOWN
     }
 
     // ================================ Главы ================================
 
-    override fun chapterListRequest(manga: SManga): Request = GET(api + manga.url, headers)
-
-    override fun chapterListParse(response: Response): List<SChapter> {
-        val dir =
-            response.request.url.encodedPath
-                .substringAfter("/api/titles/")
-                .substringBefore("/")
-        val details = response.parseAs<DetailsWrapperDto>(json).content
-        val branch = details.branches.maxByOrNull { it.count_chapters } ?: return emptyList()
-
-        val chapters = ArrayList<ChapterDto>()
-        var page = 1
-        while (page <= MAX_CHAPTER_PAGES) {
-            val request = GET("$api/api/titles/chapters/?branch_id=${branch.id}&page=$page&count=300", headers)
-            val part = client.newCall(request).execute()
-            if (!part.isSuccessful) {
-                val code = part.code
-                part.close()
-                throw Exception("Не удалось получить главы (HTTP $code)")
-            }
-            val items = part.parseAs<ChaptersWrapperDto>(json).content
-            part.close()
-            if (items.isEmpty()) break
-            chapters += items
-            if (items.size < 300) break
-            page += 1
-        }
-
-        return chapters
-            .map { dto ->
-                val number =
-                    dto.chapter
-                        .split(".")
-                        .take(2)
-                        .joinToString(".")
-                        .toFloatOrNull() ?: -1f
-                val volume = dto.tome
-                var chapterName = "$volume. Глава ${dto.chapter}"
-                if (dto.is_paid) chapterName += " \uD83D\uDCB2"
-                if (dto.name.isNotBlank()) chapterName += " ${dto.name.trim()}"
-                SChapter.create().apply {
-                    url = "/manga/$dir/ch${dto.id}"
-                    name = chapterName
-                    chapter_number = number
-                    date_upload = parseDate(dto.upload_date)
-                    scanlator = dto.publishers.takeIf { it.isNotEmpty() }?.joinToString(" / ") { it.name }
+    override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> = Observable.defer {
+        val dir = manga.url.substringAfter("/api/titles/").substringBefore("/")
+        val branch = resolveBranch(dir, manga)
+        if (branch == null) {
+            Observable.just(emptyList<SChapter>())
+        } else {
+            val chapters = ArrayList<ChapterDto>()
+            var page = 1
+            while (page <= MAX_CHAPTER_PAGES) {
+                val request = GET("$api/api/titles/chapters/?branch_id=${branch.id}&page=$page&count=300", headers)
+                val part = client.newCall(request).execute()
+                if (!part.isSuccessful) {
+                    val code = part.code
+                    part.close()
+                    throw Exception("Не удалось получить главы (HTTP $code)")
                 }
-            }.sortedWith(
-                compareBy<SChapter> { it.name.substringBefore(". Глава").toIntOrNull() ?: 0 }
-                    .thenBy { it.chapter_number },
-            ).reversed()
+                val items = part.parseAs<ChaptersWrapperDto>(json).content
+                part.close()
+                if (items.isEmpty()) break
+                chapters += items
+                if (items.size < 300) break
+                page += 1
+            }
+            val list = chapters
+                .map { dto -> dto.toSChapter(dir) }
+                .filterPaidTail()
+                .sortedWith(
+                    compareBy<SChapter> { it.name.substringBefore(". Глава").toIntOrNull() ?: 0 }
+                        .thenBy { it.chapter_number },
+                ).reversed()
+            Observable.just(list)
+        }
+    }
+
+    override fun chapterListParse(response: Response): List<SChapter> = throw UnsupportedOperationException()
+
+    // Ветки берём из кэша, заполненного при разборе деталей, — повторный запрос деталей лишний.
+    private fun resolveBranch(
+        dir: String,
+        manga: SManga,
+    ): BranchDto? {
+        val cached = branchesCache[dir]
+        if (cached != null) return cached.maxByOrNull { it.count_chapters }
+        val details = client.newCall(GET(api + manga.url, headers)).execute().parseAs<DetailsWrapperDto>(json).content
+        branchesCache[details.dir] = details.branches
+        return details.branches.maxByOrNull { it.count_chapters }
+    }
+
+    // Платные главы новее последней бесплатной ещё не вышли бесплатно — скрываем их хвост.
+    private fun List<SChapter>.filterPaidTail(): List<SChapter> {
+        val free = filter { !it.name.contains(PAID_MARK) }
+        if (free.isEmpty()) return this
+        val maxFreeVol = free.maxOf { it.name.substringBefore(". Глава").toIntOrNull() ?: 0 }
+        val maxFreeNum = free
+            .filter { (it.name.substringBefore(". Глава").toIntOrNull() ?: 0) == maxFreeVol }
+            .maxOf { it.chapter_number }
+        return filterNot { ch ->
+            val vol = ch.name.substringBefore(". Глава").toIntOrNull() ?: 0
+            ch.name.contains(PAID_MARK) && (vol > maxFreeVol || (vol == maxFreeVol && ch.chapter_number > maxFreeNum))
+        }
+    }
+
+    private fun ChapterDto.toSChapter(dir: String): SChapter {
+        val dto = this
+        val chapterNumber = dto.chapter.split(".").take(2).joinToString(".").toFloatOrNull() ?: -1f
+        var chapterTitle = "${dto.tome}. Глава ${dto.chapter}"
+        if (dto.is_paid) chapterTitle += PAID_MARK
+        if (dto.name.isNotBlank()) chapterTitle += " ${dto.name.trim()}"
+        return SChapter.create().apply {
+            url = "/manga/$dir/ch${dto.id}"
+            this.name = chapterTitle
+            chapter_number = chapterNumber
+            date_upload = parseDate(dto.upload_date)
+            scanlator = dto.publishers.takeIf { it.isNotEmpty() }?.joinToString(" / ") { it.name }
+        }
     }
 
     // =============================== Страницы ===============================
@@ -249,7 +279,12 @@ class Remanga(
 
     override fun pageListParse(response: Response): List<Page> {
         val wrapper = response.parseAs<PagesWrapperDto>(json)
-        return wrapper.content.pages
+        val pages = wrapper.content.pages
+        if (pages.isEmpty()) {
+            val reason = wrapper.msg?.takeIf { it.isNotBlank() } ?: "Страницы не найдены"
+            throw IOException(reason)
+        }
+        return pages
             .filter { it.height > MIN_PAGE_HEIGHT }
             .map { dto ->
                 val link = if (dto.link.startsWith("http")) dto.link else site + dto.link
@@ -284,6 +319,8 @@ class Remanga(
         val isEng: String? = null,
         val rus_name: String = "",
         val en_name: String = "",
+        val main_name: String = "",
+        val secondary_name: String = "",
     )
 
     @Serializable
@@ -323,6 +360,8 @@ class Remanga(
         val isEng: String? = null,
         val rus_name: String = "",
         val en_name: String = "",
+        val main_name: String = "",
+        val secondary_name: String = "",
         val another_name: String = "",
         val description: String? = null,
         val avg_rating: String = "0",
@@ -375,11 +414,12 @@ class Remanga(
     @Serializable
     private data class PagesWrapperDto(
         val content: PagesDto = PagesDto(),
+        val msg: String? = null,
     )
 
     private fun LibraryDto.toSManga(): SManga {
         val manga = SManga.create()
-        manga.title = if (isEng == "rus") rus_name else en_name.ifBlank { name }
+        manga.title = if (isEng == "rus") rus_name.ifBlank { main_name } else en_name.ifBlank { secondary_name.ifBlank { name } }
         manga.url = "/api/titles/$dir/"
         manga.thumbnail_url = site + img.mid
         manga.initialized = false
@@ -399,6 +439,7 @@ class Remanga(
         private const val PAGE_SIZE = 30
         private const val MAX_CHAPTER_PAGES = 20
         private const val MIN_PAGE_HEIGHT = 10
+        private const val PAID_MARK = " \uD83D\uDCB2"
         private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
     }
 }
