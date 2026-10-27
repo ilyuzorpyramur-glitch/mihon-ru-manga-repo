@@ -765,6 +765,23 @@
     ]
   },
   {
+    "name": "Remanga",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.remanga",
+    "apk": "tachiyomi-ru.remanga-v1.4.1.apk",
+    "lang": "ru",
+    "code": 104001,
+    "version": "1.4.1",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Remanga",
+        "lang": "ru",
+        "id": "8983242087533137528",
+        "baseUrl": "https://remanga.org"
+      }
+    ]
+  },
+  {
     "name": "RuMix",
     "pkg": "eu.kanade.tachiyomi.extension.ru.rumix",
     "apk": "tachiyomi-ru.rumix-v1.6.8.apk",
