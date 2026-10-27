@@ -34,11 +34,11 @@ import kotlin.time.Duration.Companion.seconds
  * /user-website-api/blog/rubrics/{id}/articles/ (limit/offset, tags, published).
  * Сортировок у API нет, поэтому «Популярное» — рубрика «Манга»,
  * а «Последнее» — объединённая лента «Манга» + «Хентай» по дате.
- * Каждый пост = один выпуск: одна длинная полоса (long strip) — img.cli-article__image.
+ * Каждый пост = один выпуск: одна длинная полоса — img.cli-article__image.
  * Поискового API у сайта нет — поиск делается в памяти по загруженному списку.
- * Страницы-подборки (альбомы моделей/персонажей) содержат собственную рубрику
- * (data-heading-id): её посты становятся главами — так доступны все фото альбома.
- * Фильтры: рубрика (Манга/Хентай/Косплей) и жанровые теги сайта.
+ * Страницы-подборки (альбомы моделей/персонажей) несут свою рубрику
+ * (data-heading-id): её посты становятся главами — так доступны все фото.
+ * Для альбомов косплея без своей рубрики посты собираются по sitemap-префиксу.
  */
 @Source
 class AnimeStock(
@@ -73,21 +73,21 @@ class AnimeStock(
 
     // =============================== Каталог ===============================
 
-    private fun articlesUrl(rubricId: Long, page: Int, tagId: Long? = null, limit: Int = PAGE_SIZE + 1): HttpUrl {
-        val builder = "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
+    private fun articlesUrl(rubricId: Long, page: Int, tagId: Long? = null, limit: Int = PAGE_SIZE + 1): HttpUrl =
+        "$baseUrl$API_PATH/rubrics/$rubricId/articles/".toHttpUrl().newBuilder()
             .addQueryParameter("limit", limit.toString())
             .addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
             .addQueryParameter("deleted", "false")
             .addQueryParameter("published", "true")
-        tagId?.let { builder.addQueryParameter("tags", it.toString()) }
-        return builder.build()
-    }
+            .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
+            .build()
 
     private fun fetchArticles(rubricId: Long, page: Int, limit: Int = PAGE_SIZE + 1): List<ArticleDto> {
         val request = GET(articlesUrl(rubricId, page, limit = limit).toString(), headers)
-        return client.newCall(request).execute().use { response ->
-            response.parseAs<List<ArticleDto>>(json)
-        }
+        val response = client.newCall(request).execute()
+        val articles = response.parseAs<List<ArticleDto>>(json)
+        response.close()
+        return articles
     }
 
     override fun popularMangaRequest(page: Int): Request = GET(articlesUrl(RUBRIC_MANGA, page), headers)
@@ -102,9 +102,7 @@ class AnimeStock(
         val page = offset / PAGE_SIZE + 1
         val manga = fetchArticles(RUBRIC_MANGA, page)
         val hentai = runCatching { fetchArticles(RUBRIC_HENTAI, page) }.getOrDefault(emptyList())
-        val merged = (manga + hentai)
-            .distinctBy { it.id }
-            .sortedByDescending { it.first_published_at }
+        val merged = (manga + hentai).distinctBy { it.id }.sortedByDescending { it.first_published_at }
         val hasNext = manga.size > PAGE_SIZE || hentai.size > PAGE_SIZE
         return MangasPage(merged.take(PAGE_SIZE).map { it.toSManga() }, hasNext)
     }
@@ -123,16 +121,14 @@ class AnimeStock(
         val rubric = filters.filterIsInstance<RubricFilter>().firstOrNull()?.selectedRubric ?: RUBRIC_MANGA
         val tag = filters.filterIsInstance<TagFilter>().firstOrNull()?.selectedTag
         val rubrics = if (rubric == RUBRIC_ALL) SEARCH_RUBRICS.toList() else listOf(rubric)
-
         val first = rubrics.first()
         val base = articlesUrl(first, page = 1, tagId = tag?.let { SITE_TAGS[it]?.get(first) }, limit = SEARCH_LIMIT)
-        val url = base.newBuilder()
-            .addQueryParameter("page", page.toString())
-            .addQueryParameter("q", query)
-            .addQueryParameter("tag", tag.orEmpty())
-            .addQueryParameter("rubrics", rubrics.joinToString(","))
-            .build()
-        return GET(url.toString(), headers)
+        val builder = base.newBuilder()
+        builder.addQueryParameter("page", page.toString())
+        builder.addQueryParameter("q", query)
+        builder.addQueryParameter("tag", tag.orEmpty())
+        builder.addQueryParameter("rubrics", rubrics.joinToString(","))
+        return GET(builder.build().toString(), headers)
     }
 
     override fun searchMangaParse(response: Response): MangasPage {
@@ -140,8 +136,8 @@ class AnimeStock(
         val page = url.queryParameter("page")?.toIntOrNull() ?: 1
         val query = url.queryParameter("q").orEmpty().trim()
         val tag = url.queryParameter("tag").orEmpty().ifBlank { null }
-        val rubrics = url.queryParameter("rubrics")?.split(",")?.mapNotNull(String::toLongOrNull)
-            ?: listOf(RUBRIC_MANGA)
+        val rubricsParam = url.queryParameter("rubrics")
+        val rubrics = rubricsParam?.split(",")?.mapNotNull(String::toLongOrNull) ?: listOf(RUBRIC_MANGA)
 
         // Первый запрос уже выполнен: используем его ответ, если тег применим к этой рубрике
         val firstTagOk = tag == null || SITE_TAGS[tag]?.containsKey(rubrics.first()) == true
@@ -149,17 +145,17 @@ class AnimeStock(
 
         for (rubric in rubrics.drop(1)) {
             val tagId = tag?.let { SITE_TAGS[it]?.get(rubric) } ?: if (tag == null) null else continue
-            val sub = client.newCall(GET(articlesUrl(rubric, page = 1, tagId = tagId, limit = SEARCH_LIMIT).toString(), headers))
-                .execute()
-            sub.use { collected += it.parseAs<List<ArticleDto>>(json) }
+            val request = GET(articlesUrl(rubric, page = 1, tagId = tagId, limit = SEARCH_LIMIT).toString(), headers)
+            val sub = client.newCall(request).execute()
+            val items = sub.parseAs<List<ArticleDto>>(json)
+            sub.close()
+            collected += items
         }
 
-        val filtered = collected
-            .distinctBy { it.id }
-            .filter { it.url.isNotBlank() && it.name.isNotBlank() }
-            .filter { query.isEmpty() || it.name.contains(query, ignoreCase = true) }
-            .sortedByDescending { it.first_published_at }
-
+        val unique = collected.distinctBy { it.id }
+        val valid = unique.filter { it.url.isNotBlank() && it.name.isNotBlank() }
+        val matched = valid.filter { query.isEmpty() || it.name.contains(query, ignoreCase = true) }
+        val filtered = matched.sortedByDescending { it.first_published_at }
         val from = (page - 1) * PAGE_SIZE
         val chunk = filtered.drop(from).take(PAGE_SIZE)
         return MangasPage(chunk.map { it.toSManga() }, from + PAGE_SIZE < filtered.size)
@@ -191,18 +187,16 @@ class AnimeStock(
         val document = Jsoup.parse(html, baseUrl)
         val path = response.request.url.encodedPath
         val title = document.title().substringBefore(" | ").trim()
-        val publishedAt = document.selectFirst("meta[property=article:published_time], time[datetime]")
-            ?.attr("content")
-            ?.takeIf { it.isNotEmpty() }
+        val meta = document.selectFirst("meta[property=article:published_time], time[datetime]")
+        val publishedAt = meta?.attr("content")?.takeIf { it.isNotEmpty() }
 
         val subRubricId = Regex("data-heading-id=\"(\\d{3,})\"").find(html)?.groupValues?.get(1)?.toLongOrNull()
         if (subRubricId != null) {
-            val articles = runCatching { fetchArticles(subRubricId, page = 1, limit = SUB_RUBRIC_LIMIT) }
-                .getOrDefault(emptyList())
-            if (articles.size > 1) {
-                return articles
-                    .sortedBy { it.first_published_at }
-                    .mapIndexed { index, article -> chapterFromArticle(article, index + 1) }
+            val fetched = runCatching { fetchArticles(subRubricId, page = 1, limit = SUB_RUBRIC_LIMIT) }
+            val subArticles = fetched.getOrDefault(emptyList())
+            if (subArticles.size > 1) {
+                val ordered = subArticles.sortedBy { it.first_published_at }
+                return ordered.mapIndexed { index, article -> chapterFromArticle(article, index + 1) }
             }
         }
 
@@ -211,90 +205,104 @@ class AnimeStock(
             if (chapters.isNotEmpty()) return chapters
         }
 
-        return listOf(
-            SChapter.create().apply {
-                url = path
-                name = "Полоса"
-                chapter_number = releaseNumber(title)
-                date_upload = parsePublished(publishedAt)
-            },
-        )
+        val single = SChapter.create()
+        single.url = path
+        single.name = "Полоса"
+        single.chapter_number = releaseNumber(title)
+        single.date_upload = parsePublished(publishedAt)
+        return listOf(single)
     }
 
-    private fun chapterFromArticle(article: ArticleDto, index: Int): SChapter = SChapter.create().apply {
-        url = article.url
-        name = article.name.trim().ifEmpty { "Фото $index" }
-        chapter_number = releaseNumber(name).takeIf { it > 0 } ?: index.toFloat()
-        date_upload = parsePublished(article.first_published_at)
+    private fun chapterFromArticle(article: ArticleDto, index: Int): SChapter {
+        val name = article.name.trim().ifEmpty { "Фото $index" }
+        val chapter = SChapter.create()
+        chapter.url = article.url
+        chapter.name = name
+        chapter.chapter_number = releaseNumber(name).takeIf { it > 0 } ?: index.toFloat()
+        chapter.date_upload = parsePublished(article.first_published_at)
+        return chapter
     }
 
-    private fun releaseNumber(title: String): Float =
-        Regex("""#(\d+(?:[.,]\d+)?)""").find(title)?.groupValues?.get(1)?.replace(',', '.')?.toFloatOrNull() ?: -1f
+    private fun releaseNumber(title: String): Float {
+        val match = Regex("#(\\d+(?:[.,]\\d+)?)").find(title)
+        val raw = match?.groupValues?.get(1) ?: return -1f
+        return raw.replace(',', '.').toFloatOrNull() ?: -1f
+    }
 
     private fun cosplayAlbumChapters(title: String, albumPath: String): List<SChapter> {
         val slug = slugify(title.substringBefore("/").trim())
         if (slug.length < 3) return emptyList()
-        val posts = sitemapEntries().filter { (postPath, _) ->
-            val segments = postPath.trim('/').split('/')
-            segments.size == 2 &&
-                segments.first().startsWith(slug) &&
-                !segments.first().equals("cosplay", ignoreCase = true) &&
-                !postPath.equals(albumPath, ignoreCase = true)
-        }
+        val all = sitemapEntries()
+        val posts = all.filter { (postPath, _) -> albumChapterMatch(postPath, slug, albumPath) }
         if (posts.size < 2) return emptyList()
-        return posts
-            .sortedBy { it.second }
-            .mapIndexed { index, (postPath, lastmod) ->
-                val lastSegment = postPath.trim('/').substringAfterLast('/')
-                val uuidLike = lastSegment.length == 36 && lastSegment.count { it == '-' } == 4
-                val name = if (uuidLike) {
-                    "Фото ${index + 1}"
-                } else {
-                    lastSegment.split('-')
-                        .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
-                        .ifEmpty { "Фото ${index + 1}" }
-                }
-                SChapter.create().apply {
-                    url = postPath
-                    this.name = name
-                    chapter_number = (index + 1).toFloat()
-                    date_upload = lastmod
-                }
-            }
+        val ordered = posts.sortedBy { it.second }
+        return ordered.mapIndexed { index, (postPath, lastmod) -> albumChapter(postPath, lastmod, index) }
     }
 
-    private fun slugify(value: String): String = value.lowercase()
-        .replace(Regex("[^a-z0-9]+"), "-")
-        .trim('-')
+    private fun albumChapterMatch(postPath: String, slug: String, albumPath: String): Boolean {
+        val segments = postPath.trim('/').split('/')
+        if (segments.size != 2) return false
+        if (!segments.first().startsWith(slug)) return false
+        if (segments.first().equals("cosplay", ignoreCase = true)) return false
+        return !postPath.equals(albumPath, ignoreCase = true)
+    }
+
+    private fun albumChapter(postPath: String, lastmod: Long, index: Int): SChapter {
+        val lastSegment = postPath.trim('/').substringAfterLast('/')
+        val uuidLike = lastSegment.length == 36 && lastSegment.count { it == '-' } == 4
+        val words = lastSegment.split('-').map { it.replaceFirstChar { c -> c.uppercase() } }
+        val name = if (uuidLike) "Фото ${index + 1}" else words.joinToString(" ").ifEmpty { "Фото ${index + 1}" }
+        val chapter = SChapter.create()
+        chapter.url = postPath
+        chapter.name = name
+        chapter.chapter_number = (index + 1).toFloat()
+        chapter.date_upload = lastmod
+        return chapter
+    }
+
+    private fun slugify(value: String): String {
+        val cleaned = value.lowercase().replace(Regex("[^a-z0-9]+"), "-")
+        return cleaned.trim('-')
+    }
 
     private fun sitemapEntries(): List<Pair<String, Long>> {
-        sitemapCache?.let { return it }
-        val entries = runCatching {
-            client.newCall(GET("$baseUrl/sitemap.xml", headers)).execute().use { response ->
-                val body = response.body.string()
-                SITEMAP_BLOCK.findAll(body).mapNotNull { match ->
-                    val path = match.groupValues[1].removePrefix(baseUrl).ifEmpty { return@mapNotNull null }
-                    val millis = runCatching {
-                        SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(match.groupValues[2])?.time ?: 0L
-                    }.getOrDefault(0L)
-                    path to millis
-                }.toList()
-            }
-        }.getOrDefault(emptyList())
+        val cached = sitemapCache
+        if (cached != null) return cached
+        val entries = runCatching { fetchSitemap() }.getOrDefault(emptyList())
         if (entries.isNotEmpty()) sitemapCache = entries
         return entries
     }
 
+    private fun fetchSitemap(): List<Pair<String, Long>> {
+        val request = GET("$baseUrl/sitemap.xml", headers)
+        val response = client.newCall(request).execute()
+        val result = parseSitemap(response.body.string())
+        response.close()
+        return result
+    }
+
+    private fun parseSitemap(body: String): List<Pair<String, Long>> {
+        val result = ArrayList<Pair<String, Long>>()
+        SITEMAP_BLOCK.findAll(body).forEach { match ->
+            val path = match.groupValues[1].removePrefix(baseUrl)
+            val lastmod = match.groupValues[2]
+            if (path.isNotEmpty() && lastmod.isNotEmpty()) {
+                val parsed = SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(lastmod)
+                val millis = parsed?.time ?: 0L
+                result.add(path to millis)
+            }
+        }
+        return result
+    }
+
     private fun parsePublished(value: String?): Long {
         if (value.isNullOrEmpty()) return 0L
-        return runCatching { OffsetDateTime.parse(value).toInstant().toEpochMilli() }
-            .recoverCatching {
-                LocalDateTime.parse(value.take(19))
-                    .atZone(ZoneId.of("Europe/Moscow"))
-                    .toInstant()
-                    .toEpochMilli()
-            }
-            .getOrDefault(0L)
+        val utc = runCatching { OffsetDateTime.parse(value).toInstant().toEpochMilli() }.getOrDefault(0L)
+        if (utc != 0L) return utc
+        val parsed = runCatching { LocalDateTime.parse(value.take(19)) }.getOrNull()
+        if (parsed == null) return 0L
+        val zoned = parsed.atZone(ZoneId.of("Europe/Moscow"))
+        return zoned.toInstant().toEpochMilli()
     }
 
     // =============================== Страницы ===============================
@@ -303,15 +311,11 @@ class AnimeStock(
 
     override fun pageListParse(response: Response): List<Page> {
         val document = response.asJsoup()
-        val images = document.select(PAGE_IMAGE_SELECTOR)
-            .map { it.attr("abs:src") }
-            .filter { it.startsWith("http") }
-            .distinct()
+        val raw = document.select(PAGE_IMAGE_SELECTOR).map { it.attr("abs:src") }
+        val images = raw.filter { it.startsWith("http") }.distinct()
         if (images.isNotEmpty()) return images.mapIndexed { index, url -> Page(index, imageUrl = url) }
-
-        document.selectFirst("meta[property=og:image]")?.attr("abs:content")?.let { cover ->
-            return listOf(Page(0, imageUrl = cover))
-        }
+        val cover = document.selectFirst("meta[property=og:image]")?.attr("abs:content")
+        if (cover != null && cover.isNotEmpty()) return listOf(Page(0, imageUrl = cover))
         return emptyList()
     }
 
@@ -349,7 +353,7 @@ class AnimeStock(
         private const val SUB_RUBRIC_LIMIT = 100
         private const val PAGE_IMAGE_SELECTOR = "img.cli-article__image, .cr-article__content img, .cr-article img"
         private val SITEMAP_BLOCK = Regex(
-            """<loc>([^<]+)</loc>[^<]*(?:<lastmod>([^<]*)</lastmod>)?""",
+            "<loc>([^<]+)</loc>[^<]*(?:<lastmod>([^<]*)</lastmod>)?",
             RegexOption.DOT_MATCHES_ALL,
         )
     }
