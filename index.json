@@ -70,10 +70,10 @@
   {
     "name": "AnimeStock",
     "pkg": "eu.kanade.tachiyomi.extension.ru.animestock",
-    "apk": "tachiyomi-ru.animestock-v1.4.1.apk",
+    "apk": "tachiyomi-ru.animestock-v1.4.2.apk",
     "lang": "ru",
-    "code": 104001,
-    "version": "1.4.1",
+    "code": 104002,
+    "version": "1.4.2",
     "nsfw": 1,
     "sources": [
       {
