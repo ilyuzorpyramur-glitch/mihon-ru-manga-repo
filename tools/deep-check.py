@@ -19,7 +19,8 @@ def kt_all(d):
                      for f in glob.glob(d + '/src/**/*.kt', recursive=True))
 
 def resolve_base(d, kt):
-    m = re.search(r'baseUrl\s*=\s*"([^"]+)"', open(d + '/build.gradle.kts', encoding='utf-8', errors='replace').read())
+    g = open(d + '/build.gradle.kts', encoding='utf-8', errors='replace').read()
+    m = re.search(r'custom\("([^"]+)"\)', g) or re.search(r'baseUrl\s*=\s*"([^"]+)"', g)
     if m and '$' not in m.group(1):
         return m.group(1).rstrip('/')
     for u in re.findall(r'https?://[A-Za-z0-9.\\-]+', kt):
@@ -87,7 +88,10 @@ def cards(body, kind):
     hrefs = set(re.findall(r'<a[^>]+href="([^"]+)"', body))
     imgs = set(re.findall(r'<img[^>]+(?:src|data-src|data-lazy)="([^"]+)"', body))
     imgs |= set(re.findall(r"url\(['\"]?(https?://[^'\"\\)]+)", body))
-    covers = {i for i in imgs if re.search(r'\.(jpg|jpeg|png|webp)', i, re.I) or '/thumb' in i or 'cover' in i}
+    covers = {i for i in imgs if re.search(r'\.(jpg|jpeg|png|webp)', i, re.I) or '/thumb' in i
+              or 'cover' in i or '_next/image' in i or 'srcset' in i or '/media/' in i or '/uploads/' in i}
+    if not covers and imgs:
+        covers = {i for i in imgs if not re.search(r'favicon|logo|icon|avatar', i, re.I)}
     return len(hrefs), len(covers)
 
 def probe(url):
@@ -110,6 +114,14 @@ def check(name):
     if 'multisrc.galleryadults' in kt:
         v = probe(base)
         r.update(popular=v, verdict='OK' if v['ok'] else 'ПРОВЕРИТЬ БАЗУ')
+        return r
+    if 'multisrc.libgroup' in kt:
+        api = 'https://api.cdnlibs.org'
+        v1, v2 = probe(f'{api}/api/latest-updates?page=1&limit=20'), probe(f'{api}/api/latest-updates?page=2&limit=20')
+        r.update(popular=v1, family='libgroup')
+        if v1['ok']:
+            r['pagination'] = {'page2': v2['ok'], 'differs': v2['ok'] and v2['cards'] > 0}
+        r['verdict'] = 'OK' if v1['ok'] else 'FAIL ЛИСТИНГ'
         return r
     frag = block(kt, 'popularMangaRequest') or block(kt, 'popularMangaUrl')
     lit = first_url(frag)
