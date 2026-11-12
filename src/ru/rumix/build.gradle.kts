@@ -5,13 +5,18 @@ plugins {
 }
 
 keiyoushi {
-    name = "ToonBr"
-    versionCode = 1
+    name = "RuMix"
+    versionCode = 8
     contentWarning = ContentWarning.SAFE
     libVersion = "1.6"
 
     source {
-        lang = "pt-BR"
-        baseUrl = "https://beta.toonbr.com"
+        lang = "ru"
+        baseUrl = "https://rumix.me"
+    }
+
+    deeplink {
+        host("rumix.me")
+        path("/..*")
     }
 }
