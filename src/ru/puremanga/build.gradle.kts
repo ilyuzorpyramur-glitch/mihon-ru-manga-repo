@@ -5,17 +5,14 @@ plugins {
 }
 
 keiyoushi {
-    name = "BookWalker Japan"
-    versionCode = 3
+    name = "PureManga"
+    versionCode = 0
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
+    theme = "inkstory"
 
     source {
-        lang = "ja"
-        baseUrl = "https://bookwalker.jp"
+        lang = "ru"
+        baseUrl = "https://v1.puremanga.me"
     }
-}
-
-dependencies {
-    implementation(project(":lib:publus"))
 }
