@@ -9,7 +9,7 @@ keiyoushi {
     pkgName = "ru.yaoilib"
     versionCode = 1
     contentWarning = ContentWarning.MIXED
-    libVersion = "1.6"
+    libVersion = "1.4"
     theme = "libgroup"
 
     source {
