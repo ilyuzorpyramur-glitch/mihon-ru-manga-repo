@@ -174,8 +174,6 @@ class Remanga(
 
     // ================================ Детали ================================
 
-
-
     override suspend fun getMangaDetails(manga: SManga): SManga = parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
 
     private fun mangaDetailsParse(response: Response): SManga {
