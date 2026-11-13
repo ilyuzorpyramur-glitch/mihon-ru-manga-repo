@@ -8,7 +8,7 @@ keiyoushi {
     name = "PandaChaika"
     versionCode = 6
     contentWarning = ContentWarning.NSFW
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     // Репозиторий русский: оставлены только ru и all (весь каталог).
     listOf("ru").forEach {

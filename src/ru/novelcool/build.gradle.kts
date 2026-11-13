@@ -8,7 +8,7 @@ keiyoushi {
     name = "NovelCool"
     versionCode = 9
     contentWarning = ContentWarning.MIXED
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     // Репозиторий русский: оставлен только русский поддомен.
     val subdomains = mapOf("ru" to "ru")

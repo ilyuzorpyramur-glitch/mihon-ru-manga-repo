@@ -8,7 +8,7 @@ keiyoushi {
     name = "xkcd"
     versionCode = 18
     contentWarning = ContentWarning.SAFE
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     // Репозиторий русский: оставлено только русское зеркало.
     source {

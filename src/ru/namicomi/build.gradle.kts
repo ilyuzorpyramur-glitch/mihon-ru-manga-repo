@@ -8,7 +8,7 @@ keiyoushi {
     name = "NamiComi"
     versionCode = 7
     contentWarning = ContentWarning.SAFE
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     // Репозиторий русский: оставлены только ru (и «весь каталог», если есть).
     listOf("ru").forEach {
