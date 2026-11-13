@@ -59,18 +59,13 @@ class Remanga(
 
     private val randomizer = Random.nextInt().absoluteValue.toString()
 
-    override val client: OkHttpClient =
-        network.client
-            .newBuilder()
-            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = apply {
+        connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+    }
 
-    override fun headersBuilder() = Headers.Builder().apply {
-        add(
-            "User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 Edg/126.0.$randomizer",
-        )
+    override fun Headers.Builder.configureHeaders(): Headers.Builder = apply {
+        add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 Edg/126.0.$randomizer")
         add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
         add("Referer", "$site/")
     }
@@ -124,7 +119,7 @@ class Remanga(
         return GET(catalogUrl(ordering, page, filters), headers)
     }
 
-    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage = searchMangaParse(client.get(searchMangaRequest(page, query, filters), Fetch.XHR))
+    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage = searchMangaParse(client.newCall(searchMangaRequest(page, query, filters)).execute())
 
     private fun searchMangaParse(response: Response): MangasPage {
         val isSearch =
@@ -181,7 +176,7 @@ class Remanga(
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val details = parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
+        val details = mangaDetailsParse(client.get(api + manga.url, Fetch.XHR))
         val chapterList = if (fetchChapters) parseChapterList(manga) else chapters
         return SMangaUpdate(details, chapterList)
     }
@@ -280,7 +275,7 @@ class Remanga(
     }
 
     // Ветки берём из кэша, заполненного при разборе деталей, — повторный запрос деталей лишний.
-    private fun resolveBranch(
+    private suspend fun resolveBranch(
         dir: String,
         manga: SManga,
     ): BranchDto? {
