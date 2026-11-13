@@ -100,7 +100,7 @@ class MangaLove(
         }
         .build()
 
-    private fun fetchCatalog(url: HttpUrl): MangasPage {
+    private suspend fun fetchCatalog(url: HttpUrl): MangasPage {
         val data = client.get(url, Fetch.XHR).parseAs<CatalogDto>(json)
         return MangasPage(data.manga.map { it.toSManga() }, data.hasMore)
     }

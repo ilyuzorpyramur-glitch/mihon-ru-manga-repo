@@ -243,8 +243,8 @@ class Remanga(
     private suspend fun parseChapterList(manga: SManga): List<SChapter> {
         val dir = manga.url.substringAfter("/api/titles/").substringBefore("/")
         val branch = resolveBranch(dir, manga) ?: return emptyList()
-        run {
-            val chapters = ArrayList<ChapterDto>()
+        val chapters = ArrayList<ChapterDto>()
+        return run {
             var page = 1
             while (page <= MAX_CHAPTER_PAGES) {
                 val part = client.get("$api/api/titles/chapters/?branch_id=${branch.id}&page=$page&count=300", Fetch.XHR)
@@ -271,7 +271,7 @@ class Remanga(
                         .thenBy { it.chapter_number },
                 ).reversed()
             list
-        }
+    }
     }
 
     // Ветки берём из кэша, заполненного при разборе деталей, — повторный запрос деталей лишний.
