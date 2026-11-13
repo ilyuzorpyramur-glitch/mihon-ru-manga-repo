@@ -123,8 +123,7 @@ class Remanga(
         return GET(catalogUrl(ordering, page, filters), headers)
     }
 
-    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage =
-        searchMangaParse(client.get(searchMangaRequest(page, query, filters), Fetch.XHR))
+    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage = searchMangaParse(client.get(searchMangaRequest(page, query, filters), Fetch.XHR))
 
     private fun searchMangaParse(response: Response): MangasPage {
         val isSearch =
