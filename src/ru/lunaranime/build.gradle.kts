@@ -1,0 +1,25 @@
+import io.github.keiyoushi.gradle.api.ContentWarning
+
+plugins {
+    alias(kei.plugins.extension)
+}
+
+keiyoushi {
+    name = "Lunar Manga"
+    versionCode = 1
+    contentWarning = ContentWarning.MIXED
+    libVersion = "1.6"
+
+    // Репозиторий русский: оставлены только ru и all (весь каталог).
+    val languages = listOf("ru")
+
+    languages.forEach { language ->
+        source {
+            baseUrl = "https://lunarx.to"
+            lang = language
+        }
+    }
+}
+
+dependencies {
+}
