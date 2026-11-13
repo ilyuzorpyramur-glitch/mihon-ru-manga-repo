@@ -68,6 +68,23 @@
     ]
   },
   {
+    "name": "AnimeStock",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.animestock",
+    "apk": "tachiyomi-ru.animestock-v1.6.4.apk",
+    "lang": "ru",
+    "code": 106004,
+    "version": "1.6.4",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "AnimeStock",
+        "lang": "ru",
+        "id": "9205683393119254565",
+        "baseUrl": "https://animestock.ru"
+      }
+    ]
+  },
+  {
     "name": "AstraManga",
     "pkg": "eu.kanade.tachiyomi.extension.ru.astramanga",
     "apk": "tachiyomi-ru.astramanga-v1.6.2.apk",
@@ -132,6 +149,23 @@
         "lang": "ru",
         "id": "7944056408443917590",
         "baseUrl": "https://www.dragonball-multiverse.com"
+      }
+    ]
+  },
+  {
+    "name": "E-Hentai",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.ehentai",
+    "apk": "tachiyomi-ru.ehentai-v1.6.6.apk",
+    "lang": "ru",
+    "code": 106006,
+    "version": "1.6.6",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "E-Hentai",
+        "lang": "ru",
+        "id": "2171445159732592630",
+        "baseUrl": "https://e-hentai.org"
       }
     ]
   },
@@ -285,6 +319,23 @@
         "lang": "ru",
         "id": "2026387314200968454",
         "baseUrl": "https://inkstory.net"
+      }
+    ]
+  },
+  {
+    "name": "Kagane",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.kagane",
+    "apk": "tachiyomi-ru.kagane-v1.6.33.apk",
+    "lang": "ru",
+    "code": 106033,
+    "version": "1.6.33",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Kagane",
+        "lang": "ru",
+        "id": "8751507648303673848",
+        "baseUrl": "https://kagane.org"
       }
     ]
   },
@@ -472,6 +523,23 @@
         "lang": "ru",
         "id": "6111047689498497237",
         "baseUrl": "https://mangalib.me"
+      }
+    ]
+  },
+  {
+    "name": "MangaLove",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.mangalove",
+    "apk": "tachiyomi-ru.mangalove-v1.6.3.apk",
+    "lang": "ru",
+    "code": 106003,
+    "version": "1.6.3",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "MangaLove",
+        "lang": "ru",
+        "id": "8",
+        "baseUrl": "https://mangalove.ru"
       }
     ]
   },
@@ -693,6 +761,40 @@
         "lang": "ru",
         "id": "5",
         "baseUrl": "https://a.zazaza.me"
+      }
+    ]
+  },
+  {
+    "name": "Remanga",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.remanga",
+    "apk": "tachiyomi-ru.remanga-v1.6.5.apk",
+    "lang": "ru",
+    "code": 106005,
+    "version": "1.6.5",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "Remanga",
+        "lang": "ru",
+        "id": "8983242087533137528",
+        "baseUrl": "https://remanga.org"
+      }
+    ]
+  },
+  {
+    "name": "RuMix",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.rumix",
+    "apk": "tachiyomi-ru.rumix-v1.6.8.apk",
+    "lang": "ru",
+    "code": 106008,
+    "version": "1.6.8",
+    "nsfw": 0,
+    "sources": [
+      {
+        "name": "RuMix",
+        "lang": "ru",
+        "id": "6651547640332983611",
+        "baseUrl": "https://rumix.me"
       }
     ]
   },
