@@ -10,8 +10,10 @@ import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.Fetch
+import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.getPreferencesLazy
@@ -139,7 +141,16 @@ class MangaLove(
 
     // ================================ Детали ================================
 
-    override suspend fun getMangaDetails(manga: SManga): SManga = client.get(baseUrl + DETAILS_PATH.replace("{id}", manga.url), Fetch.XHR).parseAs<MangaDto>(json).toSManga()
+    override suspend fun fetchMangaUpdate(
+        manga: SManga,
+        chapters: List<SChapter>,
+        fetchDetails: Boolean,
+        fetchChapters: Boolean,
+    ): SMangaUpdate {
+        val details = client.get(baseUrl + DETAILS_PATH.replace("{id}", manga.url), Fetch.XHR).parseAs<MangaDto>(json).toSManga()
+        val chapterList = if (fetchChapters) parseChapterList(manga) else chapters
+        return SMangaUpdate(details, chapterList)
+    }
 
     // ================================= Главы =================================
 
@@ -148,7 +159,7 @@ class MangaLove(
         .addQueryParameter("page", page.toString())
         .build()
 
-    override suspend fun getChapterList(manga: SManga): List<SChapter> {
+    private suspend fun parseChapterList(manga: SManga): List<SChapter> {
         val mangaId = manga.url
         var data = client.get(chapterPageUrl(mangaId, 1), Fetch.XHR).parseAs<ChaptersDto>(json)
         val chapters = data.chapters.toMutableList()

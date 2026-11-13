@@ -6,6 +6,7 @@ import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.Fetch
 import keiyoushi.network.get
@@ -174,7 +175,16 @@ class Remanga(
 
     // ================================ Детали ================================
 
-    override suspend fun getMangaDetails(manga: SManga): SManga = parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
+    override suspend fun fetchMangaUpdate(
+        manga: SManga,
+        chapters: List<SChapter>,
+        fetchDetails: Boolean,
+        fetchChapters: Boolean,
+    ): SMangaUpdate {
+        val details = parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
+        val chapterList = if (fetchChapters) parseChapterList(manga) else chapters
+        return SMangaUpdate(details, chapterList)
+    }
 
     private fun mangaDetailsParse(response: Response): SManga {
         val details = response.parseAs<JsonElement>(json).parseDetails()
@@ -235,7 +245,7 @@ class Remanga(
 
     // ================================ Главы ================================
 
-    override suspend fun getChapterList(manga: SManga): List<SChapter> {
+    private suspend fun parseChapterList(manga: SManga): List<SChapter> {
         val dir = manga.url.substringAfter("/api/titles/").substringBefore("/")
         val branch = resolveBranch(dir, manga) ?: return emptyList()
         run {
@@ -336,11 +346,9 @@ class Remanga(
             }
     }
 
-    override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
-
     // ================================ Фильтры ================================
 
-    override fun getFilterList(): FilterList = FilterList(
+    override fun getFilterList(data: JsonElement?): FilterList = FilterList(
         OrderBy(),
         GenreGroup(GENRES),
         CategoryGroup(CATEGORIES),

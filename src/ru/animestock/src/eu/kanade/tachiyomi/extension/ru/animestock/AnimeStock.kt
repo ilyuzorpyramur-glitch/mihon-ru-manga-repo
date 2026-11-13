@@ -5,6 +5,7 @@ import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
+import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.Fetch
 import keiyoushi.network.rateLimit
@@ -224,15 +225,25 @@ class AnimeStock(
 
     // ================================ Детали ================================
 
-    override suspend fun getMangaDetails(manga: SManga): SManga {
-        val document = client.get(baseUrl + manga.url, Fetch.XHR).asJsoup()
-        return SManga.create().apply {
-            title = document.title().substringBefore(" | ").trim()
-            thumbnail_url = document.selectFirst("meta[property=og:image]")?.attr("abs:content").orEmpty()
-            description = document.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
-            status = SManga.UNKNOWN
-            initialized = false
-        }
+    override suspend fun fetchMangaUpdate(
+        manga: SManga,
+        chapters: List<SChapter>,
+        fetchDetails: Boolean,
+        fetchChapters: Boolean,
+    ): SMangaUpdate {
+        val response = client.get(baseUrl + manga.url, Fetch.XHR)
+        val details = parseMangaDetails(response)
+        val chapterList = if (fetchChapters) parseChapterList(response, manga) else chapters
+        return SMangaUpdate(details, chapterList)
+    }
+
+    private fun parseMangaDetails(response: Response): SManga = SManga.create().apply {
+        val document = response.asJsoup()
+        title = document.title().substringBefore(" | ").trim()
+        thumbnail_url = document.selectFirst("meta[property=og:image]")?.attr("abs:content").orEmpty()
+        description = document.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
+        status = SManga.UNKNOWN
+        initialized = false
     }
 
     // ================================ Главы ================================
@@ -241,8 +252,7 @@ class AnimeStock(
     // каждая с собственной полосой. Для альбомов косплея, у которых своей
     // рубрики на странице нет, посты собираются по sitemap-префиксу.
 
-    override suspend fun getChapterList(manga: SManga): List<SChapter> {
-        val response = client.get(baseUrl + manga.url, Fetch.XHR)
+    private suspend fun parseChapterList(response: Response, manga: SManga): List<SChapter> {
         val html = response.body.string()
         val document = Jsoup.parse(html, baseUrl)
         val path = response.request.url.encodedPath
