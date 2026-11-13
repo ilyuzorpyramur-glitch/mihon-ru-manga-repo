@@ -6,11 +6,10 @@ import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
-import keiyoushi.source.KeiSource
 import keiyoushi.network.Fetch
 import keiyoushi.network.get
+import keiyoushi.source.KeiSource
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -89,11 +88,9 @@ class Remanga(
         return builder.build()
     }
 
-    override suspend fun getPopularManga(page: Int): MangasPage =
-        parseCatalog(client.get(catalogUrl("-rating", page, null), Fetch.XHR))
+    override suspend fun getPopularManga(page: Int): MangasPage = parseCatalog(client.get(catalogUrl("-rating", page, null), Fetch.XHR))
 
-    override suspend fun getLatestUpdates(page: Int): MangasPage =
-        parseCatalog(client.get(catalogUrl("-chapter_date", page, null), Fetch.XHR))
+    override suspend fun getLatestUpdates(page: Int): MangasPage = parseCatalog(client.get(catalogUrl("-chapter_date", page, null), Fetch.XHR))
 
     private fun JsonObject?.str(key: String): String = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content ?: ""
 
@@ -180,8 +177,7 @@ class Remanga(
 
 
 
-    override suspend fun getMangaDetails(manga: SManga): SManga =
-        parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
+    override suspend fun getMangaDetails(manga: SManga): SManga = parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
 
     private fun mangaDetailsParse(response: Response): SManga {
         val details = response.parseAs<JsonElement>(json).parseDetails()
@@ -319,8 +315,7 @@ class Remanga(
 
     // =============================== Страницы ===============================
 
-    override suspend fun getPageList(chapter: SChapter): List<Page> =
-        pageListParse(client.get("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", Fetch.XHR))
+    override suspend fun getPageList(chapter: SChapter): List<Page> = pageListParse(client.get("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", Fetch.XHR))
 
     private fun pageListParse(response: Response): List<Page> {
         val root = response.parseAs<JsonElement>(json) as? JsonObject
