@@ -102,6 +102,40 @@
     ]
   },
   {
+    "name": "HentaiEnvy",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.hentaienvy",
+    "apk": "tachiyomi-ru.hentaienvy-v1.6.14.apk",
+    "lang": "ru",
+    "code": 106014,
+    "version": "1.6.14",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiEnvy",
+        "lang": "ru",
+        "id": "6651113074608915226",
+        "baseUrl": "https://hentaienvy.com"
+      }
+    ]
+  },
+  {
+    "name": "HentaiEra",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.hentaiera",
+    "apk": "tachiyomi-ru.hentaiera-v1.6.15.apk",
+    "lang": "ru",
+    "code": 106015,
+    "version": "1.6.15",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiEra",
+        "lang": "ru",
+        "id": "4966955732363898584",
+        "baseUrl": "https://hentaiera.com"
+      }
+    ]
+  },
+  {
     "name": "HentaiLib",
     "pkg": "eu.kanade.tachiyomi.extension.ru.hentailib",
     "apk": "tachiyomi-ru.hentailib-v1.6.2.apk",
@@ -115,6 +149,40 @@
         "lang": "ru",
         "id": "6425650164840473547",
         "baseUrl": "https://hentailib.me"
+      }
+    ]
+  },
+  {
+    "name": "HentaiZap",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.hentaizap",
+    "apk": "tachiyomi-ru.hentaizap-v1.6.15.apk",
+    "lang": "ru",
+    "code": 106015,
+    "version": "1.6.15",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "HentaiZap",
+        "lang": "ru",
+        "id": "6614026304171193007",
+        "baseUrl": "https://hentaizap.com"
+      }
+    ]
+  },
+  {
+    "name": "IMHentai",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.imhentai",
+    "apk": "tachiyomi-ru.imhentai-v1.6.28.apk",
+    "lang": "ru",
+    "code": 106028,
+    "version": "1.6.28",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "IMHentai",
+        "lang": "ru",
+        "id": "7505608677115153818",
+        "baseUrl": "https://imhentai.xxx"
       }
     ]
   },
