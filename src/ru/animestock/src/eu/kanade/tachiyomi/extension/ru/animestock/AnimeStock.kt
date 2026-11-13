@@ -185,7 +185,6 @@ class AnimeStock(
         return builder.build()
     }
 
-
     private fun catalogSearchParse(response: Response): MangasPage {
         val items = response.parseAs<List<CatalogItemDto>>(json)
         val named = items.filter { it.url.startsWith("/") && it.title.length > 2 && !it.title.startsWith("Страница без названия") }
