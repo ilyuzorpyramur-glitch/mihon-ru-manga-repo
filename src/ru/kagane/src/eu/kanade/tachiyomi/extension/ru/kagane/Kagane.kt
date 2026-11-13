@@ -13,6 +13,7 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
 import keiyoushi.network.get
 import keiyoushi.network.post
 import keiyoushi.network.rateLimit
@@ -224,7 +225,7 @@ abstract class Kagane :
             if (sortParam.isNotEmpty()) addQueryParameter("sort", sortParam)
         }.build()
 
-        val response = client.post(url, body)
+        val response = client.post(url, Fetch.XHR, body)
         val dto = response.parseAs<SearchDto>()
         val mangas = dto.content.map { it.toSManga(apiUrl, showSource, sources, cleanTitle) }
         return MangasPage(mangas, hasNextPage = dto.hasNextPage())
@@ -234,7 +235,7 @@ abstract class Kagane :
 
     private suspend fun getMangaById(seriesId: String): DetailsDto {
         val url = "$apiUrl/series/$seriesId"
-        return client.get(url).parseAs<DetailsDto>()
+        return client.get(url, Fetch.XHR).parseAs<DetailsDto>()
     }
 
     override suspend fun getMangaByUrl(url: HttpUrl): SManga? {
@@ -299,7 +300,7 @@ abstract class Kagane :
     override suspend fun fetchRelatedMangaList(manga: SManga): List<SManga> {
         val trackerId = manga.memo["trackerId"]?.string ?: return emptyList()
 
-        val series = client.get("$apiUrl/trackers/$trackerId/series")
+        val series = client.get("$apiUrl/trackers/$trackerId/series", Fetch.XHR)
             .parseAs<TrackerDto>()
             .bookSeries
         return series
@@ -341,10 +342,11 @@ abstract class Kagane :
 
     private suspend fun getIntegrityToken(): String {
         if (integrityExp < System.currentTimeMillis()) {
-            client.get("$baseUrl/").close()
+            client.get("$baseUrl/", Fetch.DOCUMENT).close()
 
             val res = client.post(
                 "$baseUrl/api/integrity",
+                Fetch.XHR,
                 "".toJsonRequestBody(),
             ).parseAs<IntegrityDto>()
             integrityToken = res.token
@@ -365,7 +367,7 @@ abstract class Kagane :
 
         val headers = headers.newBuilder().add("x-integrity-token", integrityToken).build()
 
-        val response = client.post(challengeUrl.toString(), headers, challengeBody)
+        val response = client.post(challengeUrl.toString(), headers, Fetch.XHR, challengeBody)
 
         return response.parseAs<ChallengeDto>()
     }
@@ -535,13 +537,13 @@ abstract class Kagane :
 
     override suspend fun fetchFilterData(): JsonElement = coroutineScope {
         val genresDeferred = async {
-            client.get("$apiUrl/genres/list")
+            client.get("$apiUrl/genres/list", Fetch.XHR)
                 .parseAs<List<GenreDto>>()
                 .associate { it.id to it.genreName }
         }
 
         val tagsDeferred = async {
-            client.get("$apiUrl/tags/list")
+            client.get("$apiUrl/tags/list", Fetch.XHR)
                 .parseAs<List<TagDto>>()
                 .associate { it.tagName.lowercase() to it.id }
         }

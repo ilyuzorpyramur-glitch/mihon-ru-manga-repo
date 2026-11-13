@@ -12,6 +12,7 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
 import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
@@ -36,15 +37,9 @@ abstract class EHentai :
     private val maxPages: Int
         get() = preferences.getString(PREF_MAX_PAGES, "100")?.toIntOrNull()?.coerceIn(1, 1000) ?: 100
 
-    override fun imageRequest(page: Page): Request = super
-        .imageRequest(page)
-        .newBuilder()
-        .header("Referer", "$baseUrl/")
-        .build()
-
     // ───────────────────────────── Каталог ─────────────────────────────
 
-    override suspend fun getPopularManga(page: Int): MangasPage = parseList(client.get("$baseUrl/popular?page=$page".toHttpUrl()).asJsoup())
+    override suspend fun getPopularManga(page: Int): MangasPage = parseList(client.get("$baseUrl/popular?page=$page".toHttpUrl(), Fetch.DOCUMENT).asJsoup())
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         val url = "$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()
@@ -120,7 +115,7 @@ abstract class EHentai :
 
         builder.addQueryParameter("f_search", terms)
 
-        return parseList(client.get(builder.build()).asJsoup())
+        return parseList(client.get(builder.build(), Fetch.DOCUMENT).asJsoup())
     }
 
     private fun parseList(document: Document): MangasPage {
@@ -160,7 +155,7 @@ abstract class EHentai :
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val document = client.get("$baseUrl${manga.url}".toHttpUrl()).asJsoup()
+        val document = client.get("$baseUrl${manga.url}".toHttpUrl(), Fetch.DOCUMENT).asJsoup()
 
         val details = parseDetails(document, manga)
         val chapterList = if (fetchChapters) listOf(parseChapter(manga)) else chapters
@@ -275,7 +270,7 @@ abstract class EHentai :
         var nextUrl: String? = "$baseUrl${chapter.url}"
 
         while (nextUrl != null && visited.add(nextUrl)) {
-            val document = client.get(nextUrl.toHttpUrl()).asJsoup()
+            val document = client.get(nextUrl.toHttpUrl(), Fetch.DOCUMENT).asJsoup()
             val links = document.select("#gdt a[href*=\"/s/\"]")
             links.forEach { link ->
                 val href = link.absUrl("href")
@@ -294,7 +289,7 @@ abstract class EHentai :
 
         val pages = mutableListOf<Page>()
         pageLinks.distinct().take(maxPages).forEachIndexed { index, url ->
-            val document = client.get(url.toHttpUrl()).asJsoup()
+            val document = client.get(url.toHttpUrl(), Fetch.DOCUMENT).asJsoup()
             val imageUrl = document.selectFirst("#img")?.absUrl("src")
             pages.add(Page(index, url = url, imageUrl = imageUrl))
         }

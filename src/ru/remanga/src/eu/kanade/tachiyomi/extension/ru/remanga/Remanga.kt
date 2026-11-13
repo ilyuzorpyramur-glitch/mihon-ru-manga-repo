@@ -8,6 +8,9 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
+import keiyoushi.source.KeiSource
+import keiyoushi.network.Fetch
+import keiyoushi.network.get
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonArray
@@ -47,7 +50,7 @@ class Remanga(
     override val baseUrl: String,
     override val lang: String,
     override val id: Long,
-) : HttpSource() {
+) : KeiSource() {
     override val supportsLatest = true
 
     private val api = "https://api.remanga.org"
@@ -87,13 +90,11 @@ class Remanga(
         return builder.build()
     }
 
-    override fun popularMangaRequest(page: Int): Request = GET(catalogUrl("-rating", page, null), headers)
+    override suspend fun getPopularManga(page: Int): MangasPage =
+        parseCatalog(client.get(catalogUrl("-rating", page, null), Fetch.XHR))
 
-    override fun popularMangaParse(response: Response): MangasPage = parseCatalog(response)
-
-    override fun latestUpdatesRequest(page: Int): Request = GET(catalogUrl("-chapter_date", page, null), headers)
-
-    override fun latestUpdatesParse(response: Response): MangasPage = parseCatalog(response)
+    override suspend fun getLatestUpdates(page: Int): MangasPage =
+        parseCatalog(client.get(catalogUrl("-chapter_date", page, null), Fetch.XHR))
 
     private fun JsonObject?.str(key: String): String = (this?.get(key) as? JsonPrimitive)?.takeIf { it.isString }?.content ?: ""
 
@@ -111,7 +112,7 @@ class Remanga(
 
     private fun JsonObject?.arr(key: String): JsonArray = (this?.get(key) as? JsonArray) ?: JsonArray(emptyList())
 
-    override fun searchMangaRequest(
+    private fun searchMangaRequest(
         page: Int,
         query: String,
         filters: FilterList,
@@ -126,7 +127,10 @@ class Remanga(
         return GET(catalogUrl(ordering, page, filters), headers)
     }
 
-    override fun searchMangaParse(response: Response): MangasPage {
+    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage =
+        searchMangaParse(client.get(searchMangaRequest(page, query, filters), Fetch.XHR))
+
+    private fun searchMangaParse(response: Response): MangasPage {
         val isSearch =
             response.request.url
                 .toString()
@@ -175,9 +179,12 @@ class Remanga(
 
     // ================================ Детали ================================
 
-    override fun mangaDetailsRequest(manga: SManga): Request = GET(api + manga.url, headers)
 
-    override fun mangaDetailsParse(response: Response): SManga {
+
+    override suspend fun getMangaDetails(manga: SManga): SManga =
+        parseDetails(client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json))
+
+    private fun mangaDetailsParse(response: Response): SManga {
         val details = response.parseAs<JsonElement>(json).parseDetails()
         branchesCache[details.dir] = details.branches
         return details.toSManga()
@@ -236,17 +243,14 @@ class Remanga(
 
     // ================================ Главы ================================
 
-    override fun fetchChapterList(manga: SManga): Observable<List<SChapter>> = Observable.defer {
+    override suspend fun getChapterList(manga: SManga): List<SChapter> {
         val dir = manga.url.substringAfter("/api/titles/").substringBefore("/")
-        val branch = resolveBranch(dir, manga)
-        if (branch == null) {
-            Observable.just(emptyList<SChapter>())
-        } else {
+        val branch = resolveBranch(dir, manga) ?: return emptyList()
+        run {
             val chapters = ArrayList<ChapterDto>()
             var page = 1
             while (page <= MAX_CHAPTER_PAGES) {
-                val request = GET("$api/api/titles/chapters/?branch_id=${branch.id}&page=$page&count=300", headers)
-                val part = client.newCall(request).execute()
+                val part = client.get("$api/api/titles/chapters/?branch_id=${branch.id}&page=$page&count=300", Fetch.XHR)
                 if (!part.isSuccessful) {
                     val code = part.code
                     part.close()
@@ -269,11 +273,9 @@ class Remanga(
                     compareBy<SChapter> { it.name.substringBefore(". Глава").toIntOrNull() ?: 0 }
                         .thenBy { it.chapter_number },
                 ).reversed()
-            Observable.just(list)
+            list
         }
     }
-
-    override fun chapterListParse(response: Response): List<SChapter> = throw UnsupportedOperationException()
 
     // Ветки берём из кэша, заполненного при разборе деталей, — повторный запрос деталей лишний.
     private fun resolveBranch(
@@ -282,7 +284,7 @@ class Remanga(
     ): BranchDto? {
         val cached = branchesCache[dir]
         if (cached != null) return cached.maxByOrNull { it.count_chapters }
-        val details = client.newCall(GET(api + manga.url, headers)).execute().parseAs<JsonElement>(json).parseDetails()
+        val details = client.get(api + manga.url, Fetch.XHR).parseAs<JsonElement>(json).parseDetails()
         branchesCache[details.dir] = details.branches
         return details.branches.maxByOrNull { it.count_chapters }
     }
@@ -318,9 +320,10 @@ class Remanga(
 
     // =============================== Страницы ===============================
 
-    override fun pageListRequest(chapter: SChapter): Request = GET("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", headers)
+    override suspend fun getPageList(chapter: SChapter): List<Page> =
+        pageListParse(client.get("$api/api/titles/chapters/${chapter.url.substringAfterLast("/ch")}/", Fetch.XHR))
 
-    override fun pageListParse(response: Response): List<Page> {
+    private fun pageListParse(response: Response): List<Page> {
         val root = response.parseAs<JsonElement>(json) as? JsonObject
         val msg = root.str("msg")
         val content = root?.get("content") as? JsonObject
