@@ -8,7 +8,7 @@ keiyoushi {
     name = "MyReadingManga"
     versionCode = 62
     contentWarning = ContentWarning.NSFW
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     // Репозиторий русский: оставлены только ru (и «весь каталог», если есть).
     listOf("ru").forEach {
