@@ -19,6 +19,7 @@ import keiyoushi.source.KeiSource
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
@@ -50,18 +51,18 @@ class MangaLove(
 
     private val baseUrlHost = baseUrl.toHttpUrl().host
 
-    override val client: OkHttpClient = network.client.newBuilder()
-        .connectTimeout(30.seconds)
-        .readTimeout(60.seconds)
-        .rateLimit(4, 1.seconds) { it.host == baseUrlHost }
-        .addInterceptor { chain ->
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = apply {
+        connectTimeout(30.seconds)
+        readTimeout(60.seconds)
+        rateLimit(4, 1.seconds) { it.host == baseUrlHost }
+        addInterceptor { chain ->
             chain.proceed(
                 chain.request().newBuilder()
                     .header(API_KEY_HEADER, API_KEY)
                     .build(),
             )
         }
-        .build()
+    }
 
     // ================================ Качество ================================
 
@@ -333,7 +334,7 @@ class MangaLove(
 
     private class Genre(name: String, val id: String) : Filter.TriState(name)
 
-    override fun getFilterList() = FilterList(
+    override fun getFilterList(data: JsonElement?): FilterList = FilterList(
         SortFilter(),
         StatusFilter(),
         AgeRatingFilter(),

@@ -8,12 +8,14 @@ import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
 import keiyoushi.network.Fetch
+import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -59,13 +61,11 @@ class AnimeStock(
 
     private var sitemapCache: List<Pair<String, Long>>? = null
 
-    override val client: OkHttpClient =
-        network.client
-            .newBuilder()
-            .connectTimeout(30.seconds)
-            .readTimeout(60.seconds)
-            .rateLimit(2, 1.seconds)
-            .build()
+    override fun OkHttpClient.Builder.configureClient(): OkHttpClient.Builder = apply {
+        connectTimeout(30.seconds)
+        readTimeout(60.seconds)
+        rateLimit(2, 1.seconds)
+    }
 
     // =============================== Каталог ===============================
 
@@ -407,7 +407,7 @@ class AnimeStock(
 
     // ================================ Фильтры ================================
 
-    override fun getFilterList() = FilterList(RubricFilter(), TagFilter())
+    override fun getFilterList(data: JsonElement?): FilterList = FilterList(RubricFilter(), TagFilter())
 
     private fun ArticleDto.toSManga(): SManga = SManga.create().apply {
         url = this@toSManga.url
