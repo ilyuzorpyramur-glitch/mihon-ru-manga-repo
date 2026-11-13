@@ -22,5 +22,4 @@ keiyoushi {
 }
 
 dependencies {
-    implementation(project(":lib:cryptoaes"))
 }
