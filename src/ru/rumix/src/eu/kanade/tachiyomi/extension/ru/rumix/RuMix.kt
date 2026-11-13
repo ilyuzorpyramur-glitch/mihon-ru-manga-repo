@@ -8,6 +8,7 @@ import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
 import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
 import keiyoushi.network.get
 import keiyoushi.network.rateLimit
 import keiyoushi.source.KeiSource
@@ -110,7 +111,7 @@ abstract class RuMix : KeiSource() {
         sort: String,
         filters: FilterList?,
     ): MangasPage {
-        val response = client.get(catalogUrl(page, query, sort, filters)).parseAs<CatalogResponse>()
+        val response = client.get(catalogUrl(page, query, sort, filters), Fetch.XHR).parseAs<CatalogResponse>()
         val mangas = response.list.mapNotNull { it.toSManga() }
         return MangasPage(mangas, response.offset + mangas.size < response.total)
     }
@@ -132,7 +133,7 @@ abstract class RuMix : KeiSource() {
         fetchDetails: Boolean,
         fetchChapters: Boolean,
     ): SMangaUpdate {
-        val document = client.get("$baseUrl${manga.url}").asJsoup()
+        val document = client.get("$baseUrl${manga.url}", Fetch.XHR).asJsoup()
 
         val details = parseDetails(document, manga)
         val chapterList = if (fetchChapters) parseChapters(document, manga.url) else chapters
@@ -231,7 +232,7 @@ abstract class RuMix : KeiSource() {
     // ───────────────────────────── Страницы ─────────────────────────────
 
     override suspend fun getPageList(chapter: SChapter): List<Page> {
-        val document = client.get("$baseUrl${chapter.url}").asJsoup()
+        val document = client.get("$baseUrl${chapter.url}", Fetch.XHR).asJsoup()
 
         // Страницы лежат в <script>: rm_h.readerInit(chapterInfo, [['host','','path',w,h], ...])
         val script =
