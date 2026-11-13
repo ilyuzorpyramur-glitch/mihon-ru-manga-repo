@@ -3,7 +3,6 @@ package ru.mangalove
 import android.widget.Toast
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceScreen
-import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.Filter
 import eu.kanade.tachiyomi.source.model.FilterList
@@ -11,18 +10,16 @@ import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
 import keiyoushi.network.rateLimit
+import keiyoushi.source.KeiSource
 import keiyoushi.utils.getPreferencesLazy
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.json.Json
-import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
 import java.time.OffsetDateTime
 import kotlin.time.Duration.Companion.seconds
 
@@ -37,7 +34,7 @@ class MangaLove(
     override val baseUrl: String,
     override val lang: String,
     override val id: Long,
-) : HttpSource(),
+) : KeiSource(),
     ConfigurableSource {
 
     override val supportsLatest = true
@@ -63,11 +60,6 @@ class MangaLove(
             )
         }
         .build()
-
-    override fun headersBuilder() = Headers.Builder().apply {
-        add("Referer", "$baseUrl/")
-        add("User-Agent", "Mozilla/5.0 (Linux; Android 14) MangaLove/1.0")
-    }
 
     // ================================ Качество ================================
 
@@ -105,18 +97,16 @@ class MangaLove(
         }
         .build()
 
-    override fun popularMangaRequest(page: Int): Request = GET(catalogUrl(page, DEFAULT_SORT), headers)
-
-    override fun popularMangaParse(response: Response): MangasPage {
-        val data = response.parseAs<CatalogDto>(json)
+    private fun fetchCatalog(url: HttpUrl): MangasPage {
+        val data = client.get(url, Fetch.XHR).parseAs<CatalogDto>(json)
         return MangasPage(data.manga.map { it.toSManga() }, data.hasMore)
     }
 
-    override fun latestUpdatesRequest(page: Int): Request = GET(catalogUrl(page, LATEST_SORT), headers)
+    override suspend fun getPopularManga(page: Int): MangasPage = fetchCatalog(catalogUrl(page, DEFAULT_SORT))
 
-    override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
+    override suspend fun getLatestUpdates(page: Int): MangasPage = fetchCatalog(catalogUrl(page, LATEST_SORT))
 
-    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
         var sort = DEFAULT_SORT
         var status = ""
         var ageRating = ""
@@ -144,38 +134,29 @@ class MangaLove(
         if (ageRating.isNotEmpty()) url.addQueryParameter("age_rating", ageRating)
         if (includedTags.isNotEmpty()) url.addQueryParameter("included_tags", includedTags)
         if (excludedTags.isNotEmpty()) url.addQueryParameter("excluded_tags", excludedTags)
-        return GET(url.build(), headers)
+        return fetchCatalog(url.build())
     }
-
-    override fun searchMangaParse(response: Response): MangasPage = popularMangaParse(response)
 
     // ================================ Детали ================================
 
-    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + DETAILS_PATH.replace("{id}", manga.url), headers)
-
-    override fun mangaDetailsParse(response: Response): SManga = response.parseAs<MangaDto>(json).toSManga()
+    override suspend fun getMangaDetails(manga: SManga): SManga = client.get(baseUrl + DETAILS_PATH.replace("{id}", manga.url), Fetch.XHR).parseAs<MangaDto>(json).toSManga()
 
     // ================================= Главы =================================
 
-    override fun chapterListRequest(manga: SManga): Request = chapterPageRequest(manga.url, 1)
+    private fun chapterPageUrl(mangaId: String, page: Int): HttpUrl = (baseUrl + CHAPTERS_PATH.replace("{id}", mangaId)).toHttpUrl().newBuilder()
+        .addQueryParameter("lang", lang)
+        .addQueryParameter("page", page.toString())
+        .build()
 
-    private fun chapterPageRequest(mangaId: String, page: Int): Request = GET(
-        baseUrl + CHAPTERS_PATH.replace("{id}", mangaId) +
-            "?lang=" + lang + "&page=" + page,
-        headers,
-    )
-
-    override fun chapterListParse(response: Response): List<SChapter> {
-        val segments = response.request.url.pathSegments
-        val mangaId = segments.getOrNull(segments.indexOf("manga") + 1) ?: return emptyList()
-
-        var data = response.parseAs<ChaptersDto>(json)
+    override suspend fun getChapterList(manga: SManga): List<SChapter> {
+        val mangaId = manga.url
+        var data = client.get(chapterPageUrl(mangaId, 1), Fetch.XHR).parseAs<ChaptersDto>(json)
         val chapters = data.chapters.toMutableList()
         var page = 1
 
         while (chapters.isNotEmpty() && chapters.size < data.total && page < MAX_CHAPTER_PAGES) {
             page++
-            data = client.newCall(chapterPageRequest(mangaId, page)).execute().parseAs(json)
+            data = client.get(chapterPageUrl(mangaId, page), Fetch.XHR).parseAs<ChaptersDto>(json)
             if (data.chapters.isEmpty()) break
             chapters += data.chapters
         }
@@ -203,15 +184,10 @@ class MangaLove(
 
     // ================================ Страницы ================================
 
-    override fun pageListRequest(chapter: SChapter): Request = GET("$baseUrl${chapter.url}?quality=$preferredQuality", headers)
-
-    override fun pageListParse(response: Response): List<Page> = response.parseAs<PagesDto>(json).pages.mapIndexed { index, url ->
-        Page(index, imageUrl = url)
+    override suspend fun getPageList(chapter: SChapter): List<Page> {
+        val data = client.get("$baseUrl${chapter.url}?quality=$preferredQuality", Fetch.XHR).parseAs<PagesDto>(json)
+        return data.pages.mapIndexed { index, url -> Page(index, imageUrl = url) }
     }
-
-    override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
-
-    override fun imageRequest(page: Page): Request = GET(page.imageUrl!!, headers)
 
     // ================================ Маппинг ================================
 

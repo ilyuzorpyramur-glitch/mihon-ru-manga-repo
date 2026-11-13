@@ -1,14 +1,14 @@
 package ru.animestock
 
-import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.online.HttpSource
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
 import keiyoushi.network.rateLimit
+import keiyoushi.source.KeiSource
 import keiyoushi.utils.asJsoup
 import keiyoushi.utils.parseAs
 import kotlinx.serialization.Serializable
@@ -17,7 +17,6 @@ import okhttp3.Headers
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.Response
 import org.jsoup.Jsoup
 import java.text.SimpleDateFormat
@@ -48,7 +47,7 @@ class AnimeStock(
     override val baseUrl: String,
     override val lang: String,
     override val id: Long,
-) : HttpSource() {
+) : KeiSource() {
     override val supportsLatest = true
 
     private val json =
@@ -67,12 +66,6 @@ class AnimeStock(
             .rateLimit(2, 1.seconds)
             .build()
 
-    override fun headersBuilder() = Headers.Builder().apply {
-        add("User-Agent", UA)
-        add("Referer", "$baseUrl/")
-        add("Accept-Language", "ru,en;q=0.8")
-    }
-
     // =============================== Каталог ===============================
 
     private fun articlesUrl(
@@ -90,31 +83,19 @@ class AnimeStock(
         .apply { tagId?.let { addQueryParameter("tags", it.toString()) } }
         .build()
 
-    private fun fetchArticles(
+    private suspend fun fetchArticles(
         rubricId: Long,
         page: Int,
         limit: Int = PAGE_SIZE + 1,
     ): List<ArticleDto> {
-        val request = GET(articlesUrl(rubricId, page, limit = limit).toString(), headers)
-        val response = client.newCall(request).execute()
-        val articles = response.parseAs<List<ArticleDto>>(json)
-        response.close()
-        return articles
+        val response = client.get(articlesUrl(rubricId, page, limit = limit), Fetch.XHR)
+        return response.parseAs<List<ArticleDto>>(json)
     }
 
-    override fun popularMangaRequest(page: Int): Request = GET(articlesUrl(RUBRIC_MANGA, page), headers)
-
-    override fun popularMangaParse(response: Response): MangasPage = parseArticles(response)
-
-    override fun latestUpdatesRequest(page: Int): Request = GET(articlesUrl(RUBRIC_MANGA, page), headers)
+    override suspend fun getPopularManga(page: Int): MangasPage = parseArticles(client.get(articlesUrl(RUBRIC_MANGA, page), Fetch.XHR))
 
     // «Последнее» — вся лента сайта: Манга + Хентай, слитно по дате публикации
-    override fun latestUpdatesParse(response: Response): MangasPage {
-        val offset =
-            response.request.url
-                .queryParameter("offset")
-                ?.toIntOrNull() ?: 0
-        val page = offset / PAGE_SIZE + 1
+    override suspend fun getLatestUpdates(page: Int): MangasPage {
         val manga = fetchArticles(RUBRIC_MANGA, page)
         val hentai = runCatching { fetchArticles(RUBRIC_HENTAI, page) }.getOrDefault(emptyList())
         val merged = (manga + hentai).distinctBy { it.id }.sortedByDescending { it.first_published_at }
@@ -136,23 +117,22 @@ class AnimeStock(
     // он покрывает весь сайт, включая альбомы косплея и страницы персонажей.
     // Жанровые теги существуют только в CMS — при выбранном жанре ищем по фидам рубрик.
     // PostgREST принимает только свои параметры - посторонние (page/q/...) дают 400 PGRST100.
-    override fun searchMangaRequest(
-        page: Int,
-        query: String,
-        filters: FilterList,
-    ): Request {
+    override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
         val rubric = filters.filterIsInstance<RubricFilter>().firstOrNull()?.selectedRubric ?: RUBRIC_MANGA
         val tag = filters.filterIsInstance<TagFilter>().firstOrNull()?.selectedTag
-        if (tag != null) return cmsSearchRequest(page, query, rubric, tag)
-        val endpoint = "$SB_URL/rest/v1/$SB_TABLE".toHttpUrl()
-        val builder = endpoint.newBuilder()
-        builder.addQueryParameter("select", "title,url,poster")
-        builder.addQueryParameter("limit", (PAGE_SIZE + 1).toString())
-        builder.addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
-        builder.addQueryParameter("order", "created_at.desc")
-        val filter = catalogFilter(rubric, query)
-        builder.addQueryParameter(filter.first, filter.second)
-        return GET(builder.build().toString(), catalogHeaders())
+        return if (tag != null) {
+            cmsSearch(client.get(cmsSearchUrl(page, query, rubric, tag), Fetch.XHR), page, query)
+        } else {
+            val endpoint = "$SB_URL/rest/v1/$SB_TABLE".toHttpUrl()
+            val builder = endpoint.newBuilder()
+            builder.addQueryParameter("select", "title,url,poster")
+            builder.addQueryParameter("limit", (PAGE_SIZE + 1).toString())
+            builder.addQueryParameter("offset", ((page - 1) * PAGE_SIZE).toString())
+            builder.addQueryParameter("order", "created_at.desc")
+            val filter = catalogFilter(rubric, query)
+            builder.addQueryParameter(filter.first, filter.second)
+            catalogSearchParse(client.get(builder.build(), catalogHeaders(), Fetch.XHR))
+        }
     }
 
     private fun catalogFilter(
@@ -178,12 +158,12 @@ class AnimeStock(
         return "or" to "($tree)"
     }
 
-    private fun cmsSearchRequest(
+    private fun cmsSearchUrl(
         page: Int,
         query: String,
         rubric: Long,
         tag: String,
-    ): Request {
+    ): HttpUrl {
         val rubrics = if (rubric == RUBRIC_ALL) SEARCH_RUBRICS.toList() else listOf(rubric)
         val first = rubrics.first()
         val base = articlesUrl(first, page = 1, tagId = SITE_TAGS[tag]?.get(first), limit = SEARCH_LIMIT)
@@ -192,7 +172,7 @@ class AnimeStock(
         builder.addQueryParameter("q", query)
         builder.addQueryParameter("tag", tag)
         builder.addQueryParameter("rubrics", rubrics.joinToString(","))
-        return GET(builder.build().toString(), headers)
+        return builder.build()
     }
 
     private fun catalogHeaders(): Headers {
@@ -205,11 +185,6 @@ class AnimeStock(
         return builder.build()
     }
 
-    override fun searchMangaParse(response: Response): MangasPage {
-        val isCatalog = response.request.url.host == SB_HOST
-        if (isCatalog) return catalogSearchParse(response)
-        return cmsSearchParse(response)
-    }
 
     private fun catalogSearchParse(response: Response): MangasPage {
         val items = response.parseAs<List<CatalogItemDto>>(json)
@@ -219,10 +194,12 @@ class AnimeStock(
         return MangasPage(pageItems.map { it.toSManga() }, hasNext)
     }
 
-    private fun cmsSearchParse(response: Response): MangasPage {
+    private suspend fun cmsSearch(
+        response: Response,
+        page: Int,
+        query: String,
+    ): MangasPage {
         val url = response.request.url
-        val page = url.queryParameter("page")?.toIntOrNull() ?: 1
-        val query = url.queryParameter("q").orEmpty().trim()
         val tag = url.queryParameter("tag").orEmpty().ifBlank { null }
         val rubricsParam = url.queryParameter("rubrics")
         val rubrics = rubricsParam?.split(",")?.mapNotNull(String::toLongOrNull) ?: listOf(RUBRIC_MANGA)
@@ -233,11 +210,8 @@ class AnimeStock(
 
         for (rubric in rubrics.drop(1)) {
             val tagId = tag?.let { SITE_TAGS[it]?.get(rubric) } ?: if (tag == null) null else continue
-            val request = GET(articlesUrl(rubric, page = 1, tagId = tagId, limit = SEARCH_LIMIT).toString(), headers)
-            val sub = client.newCall(request).execute()
-            val items = sub.parseAs<List<ArticleDto>>(json)
-            sub.close()
-            collected += items
+            val sub = client.get(articlesUrl(rubric, page = 1, tagId = tagId, limit = SEARCH_LIMIT), Fetch.XHR)
+            collected += sub.parseAs<List<ArticleDto>>(json)
         }
 
         val unique = collected.distinctBy { it.id }
@@ -251,15 +225,15 @@ class AnimeStock(
 
     // ================================ Детали ================================
 
-    override fun mangaDetailsRequest(manga: SManga): Request = GET(baseUrl + manga.url, headers)
-
-    override fun mangaDetailsParse(response: Response): SManga = SManga.create().apply {
-        val document = response.asJsoup()
-        title = document.title().substringBefore(" | ").trim()
-        thumbnail_url = document.selectFirst("meta[property=og:image]")?.attr("abs:content").orEmpty()
-        description = document.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
-        status = SManga.UNKNOWN
-        initialized = false
+    override suspend fun getMangaDetails(manga: SManga): SManga {
+        val document = client.get(baseUrl + manga.url, Fetch.XHR).asJsoup()
+        return SManga.create().apply {
+            title = document.title().substringBefore(" | ").trim()
+            thumbnail_url = document.selectFirst("meta[property=og:image]")?.attr("abs:content").orEmpty()
+            description = document.selectFirst("meta[property=og:description]")?.attr("content").orEmpty()
+            status = SManga.UNKNOWN
+            initialized = false
+        }
     }
 
     // ================================ Главы ================================
@@ -268,9 +242,8 @@ class AnimeStock(
     // каждая с собственной полосой. Для альбомов косплея, у которых своей
     // рубрики на странице нет, посты собираются по sitemap-префиксу.
 
-    override fun chapterListRequest(manga: SManga): Request = mangaDetailsRequest(manga)
-
-    override fun chapterListParse(response: Response): List<SChapter> {
+    override suspend fun getChapterList(manga: SManga): List<SChapter> {
+        val response = client.get(baseUrl + manga.url, Fetch.XHR)
         val html = response.body.string()
         val document = Jsoup.parse(html, baseUrl)
         val path = response.request.url.encodedPath
@@ -325,7 +298,7 @@ class AnimeStock(
         return raw.replace(',', '.').toFloatOrNull() ?: -1f
     }
 
-    private fun cosplayAlbumChapters(
+    private suspend fun cosplayAlbumChapters(
         title: String,
         albumPath: String,
     ): List<SChapter> {
@@ -372,7 +345,7 @@ class AnimeStock(
         return cleaned.trim('-')
     }
 
-    private fun sitemapEntries(): List<Pair<String, Long>> {
+    private suspend fun sitemapEntries(): List<Pair<String, Long>> {
         val cached = sitemapCache
         if (cached != null) return cached
         val entries = runCatching { fetchSitemap() }.getOrDefault(emptyList())
@@ -380,9 +353,8 @@ class AnimeStock(
         return entries
     }
 
-    private fun fetchSitemap(): List<Pair<String, Long>> {
-        val request = GET("$baseUrl/sitemap.xml", headers)
-        val response = client.newCall(request).execute()
+    private suspend fun fetchSitemap(): List<Pair<String, Long>> {
+        val response = client.get("$baseUrl/sitemap.xml", Fetch.XHR)
         val result = parseSitemap(response.body.string())
         response.close()
         return result
@@ -414,10 +386,8 @@ class AnimeStock(
 
     // =============================== Страницы ===============================
 
-    override fun pageListRequest(chapter: SChapter): Request = GET(baseUrl + chapter.url, headers)
-
-    override fun pageListParse(response: Response): List<Page> {
-        val document = response.asJsoup()
+    override suspend fun getPageList(chapter: SChapter): List<Page> {
+        val document = client.get(baseUrl + chapter.url, Fetch.XHR).asJsoup()
         val raw = document.select(PAGE_IMAGE_SELECTOR).map { it.attr("abs:src") }
         val images = raw.filter { it.startsWith("http") }.distinct()
         if (images.isNotEmpty()) return images.mapIndexed { index, url -> Page(index, imageUrl = url) }
@@ -425,8 +395,6 @@ class AnimeStock(
         if (cover != null && cover.isNotEmpty()) return listOf(Page(0, imageUrl = cover))
         return emptyList()
     }
-
-    override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
 
     // ================================ Фильтры ================================
 
