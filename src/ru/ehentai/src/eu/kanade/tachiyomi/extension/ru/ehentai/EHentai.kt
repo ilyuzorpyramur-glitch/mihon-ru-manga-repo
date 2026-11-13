@@ -42,7 +42,7 @@ abstract class EHentai :
 
     override suspend fun getLatestUpdates(page: Int): MangasPage {
         val url = "$baseUrl/?f_search=$LANGUAGE_TAG&page=$page".toHttpUrl()
-        return parseList(client.get(url).asJsoup())
+        return parseList(client.get(url, Fetch.DOCUMENT).asJsoup())
     }
 
     override suspend fun getSearchMangaList(

@@ -550,6 +550,7 @@ abstract class Kagane :
         val sourcesDeferred = async {
             client.post(
                 "$apiUrl/sources/list",
+                Fetch.XHR,
                 buildJsonObject { put("source_types", null) }.toJsonRequestBody(),
             )
                 .parseAs<SourcesDto>().sources
