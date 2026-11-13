@@ -9,10 +9,6 @@ plugins {
 android {
     namespace = "keiyoushi.core"
 
-    defaultConfig {
-        consumerProguardFiles("consumer-rules.pro")
-    }
-
     buildFeatures {
         resValues = false
     }
@@ -28,5 +24,6 @@ dependencies {
 
     testImplementation(libs.bundles.common)
     testImplementation(libs.tachiyomi.lib.v16)
+    testImplementation(libs.androidx.webkit)
     testImplementation(libs.junit)
 }

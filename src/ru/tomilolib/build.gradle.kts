@@ -6,13 +6,12 @@ plugins {
 
 keiyoushi {
     name = "Tomilo-lib"
-    versionCode = 10
+    versionCode = 1
     contentWarning = ContentWarning.MIXED
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     source {
-        baseUrl = "https://tomilo-lib.ru"
         lang = "ru"
-        id = 7420534233267322527L
+        baseUrl = "https://tomilo-lib.ru"
     }
 }

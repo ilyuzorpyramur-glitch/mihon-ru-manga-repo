@@ -6,13 +6,16 @@ plugins {
 
 keiyoushi {
     name = "YagamiProject"
-    versionCode = 7
+    versionCode = 1
     contentWarning = ContentWarning.SAFE
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     source {
-        baseUrl = "https://read.yagami.me"
         lang = "ru"
-        id = 5458965504724393093L
+        baseUrl = "https://read.yagami.me"
+    }
+
+    deeplink {
+        path("/series/..*")
     }
 }

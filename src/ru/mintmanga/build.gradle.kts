@@ -6,7 +6,7 @@ plugins {
 
 keiyoushi {
     name = "MintManga"
-    versionCode = 51
+    versionCode = 47
     contentWarning = ContentWarning.MIXED
     libVersion = "1.6"
     theme = "grouple"

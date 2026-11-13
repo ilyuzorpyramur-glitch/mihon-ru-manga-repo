@@ -6,13 +6,16 @@ plugins {
 
 keiyoushi {
     name = "AstraManga"
-    versionCode = 3
+    versionCode = 2
     contentWarning = ContentWarning.SAFE
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     source {
-        baseUrl = "https://astramanga.org"
         lang = "ru"
-        id = 7938304578940592570L
+        baseUrl = "https://astramanga.org"
+    }
+
+    deeplink {
+        path("/manga/..*")
     }
 }

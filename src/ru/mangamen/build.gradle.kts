@@ -8,10 +8,14 @@ keiyoushi {
     name = "MangaMen"
     versionCode = 3
     contentWarning = ContentWarning.SAFE
-    libVersion = "1.4"
+    libVersion = "1.6"
 
     source {
         lang = "ru"
-        baseUrl = "https://mangamen.net"
+        baseUrl = "https://mangamen.com"
+    }
+
+    deeplink {
+        path("/..*")
     }
 }

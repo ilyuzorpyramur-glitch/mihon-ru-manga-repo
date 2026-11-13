@@ -2,30 +2,32 @@ package eu.kanade.tachiyomi.extension.ru.ninegrid
 
 import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceScreen
-import eu.kanade.tachiyomi.network.GET
 import eu.kanade.tachiyomi.source.ConfigurableSource
 import eu.kanade.tachiyomi.source.model.FilterList
 import eu.kanade.tachiyomi.source.model.MangasPage
 import eu.kanade.tachiyomi.source.model.Page
 import eu.kanade.tachiyomi.source.model.SChapter
 import eu.kanade.tachiyomi.source.model.SManga
-import eu.kanade.tachiyomi.source.online.HttpSource
+import eu.kanade.tachiyomi.source.model.SMangaUpdate
 import keiyoushi.annotation.Source
+import keiyoushi.network.Fetch
+import keiyoushi.network.get
+import keiyoushi.source.KeiSource
 import keiyoushi.utils.getPreferences
 import keiyoushi.utils.parseAs
 import keiyoushi.utils.tryParse
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.JsonElement
 import okhttp3.Headers
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.Request
-import okhttp3.Response
-import java.text.SimpleDateFormat
-import java.util.Locale
+import kotlin.time.Instant
 
 @Source
 abstract class NineGrid :
-    HttpSource(),
+    KeiSource(),
     ConfigurableSource {
-    override val supportsLatest = true
 
     private val preferences = getPreferences()
 
@@ -35,7 +37,7 @@ abstract class NineGrid :
     private val apiBase: String
         get() = "$baseUrl/api/external/v1"
 
-    override fun headersBuilder(): Headers.Builder = super.headersBuilder().apply {
+    override fun Headers.Builder.configureHeaders() = apply {
         add("Accept", "application/json")
         if (apiKey.isNotBlank()) {
             add("Authorization", "Bearer $apiKey")
@@ -44,123 +46,108 @@ abstract class NineGrid :
 
     // Popular
 
-    override fun popularMangaRequest(page: Int): Request {
-        val url =
-            "$apiBase/series"
-                .toHttpUrl()
-                .newBuilder()
-                .addQueryParameter("page", (page - 1).toString())
-                .addQueryParameter("size", "20")
-                .addQueryParameter("sort", "popular")
-                .build()
-        return GET(url, headers)
+    override suspend fun getPopularManga(page: Int): MangasPage {
+        val url = "$apiBase/series".toHttpUrl().newBuilder()
+            .addQueryParameter("page", (page - 1).toString())
+            .addQueryParameter("size", "20")
+            .addQueryParameter("sort", "popular")
+            .build()
+        return getSeriesList(url)
     }
 
-    override fun popularMangaParse(response: Response): MangasPage {
-        val data = response.parseAs<SeriesListResponse>()
+    private suspend fun getSeriesList(url: HttpUrl): MangasPage {
+        val data = client.get(url, Fetch.XHR).parseAs<SeriesListResponse>()
         val mangas = data.content.map { it.toSManga(apiBase) }
         return MangasPage(mangas, data.page + 1 < data.totalPages)
     }
 
     // Latest
 
-    override fun latestUpdatesRequest(page: Int): Request {
-        val url =
-            "$apiBase/series"
-                .toHttpUrl()
-                .newBuilder()
-                .addQueryParameter("page", (page - 1).toString())
-                .addQueryParameter("size", "20")
-                .addQueryParameter("sort", "latest")
-                .build()
-        return GET(url, headers)
+    override suspend fun getLatestUpdates(page: Int): MangasPage {
+        val url = "$apiBase/series".toHttpUrl().newBuilder()
+            .addQueryParameter("page", (page - 1).toString())
+            .addQueryParameter("size", "20")
+            .addQueryParameter("sort", "latest")
+            .build()
+        return getSeriesList(url)
     }
-
-    override fun latestUpdatesParse(response: Response): MangasPage = popularMangaParse(response)
 
     // Search
 
-    override fun searchMangaRequest(
+    override suspend fun getSearchMangaList(
         page: Int,
         query: String,
         filters: FilterList,
-    ): Request {
-        val url =
-            "$apiBase/series"
-                .toHttpUrl()
-                .newBuilder()
-                .addQueryParameter("page", (page - 1).toString())
-                .addQueryParameter("size", "20")
-                .addQueryParameter("q", query)
+    ): MangasPage {
+        val url = "$apiBase/series".toHttpUrl().newBuilder()
+            .addQueryParameter("page", (page - 1).toString())
+            .addQueryParameter("size", "20")
+            .addQueryParameter("q", query)
 
         filters.forEach { filter ->
             when (filter) {
-                is SortFilter -> {
-                    url.addQueryParameter("sort", filter.selected)
+                is SortFilter -> url.addQueryParameter("sort", filter.selected)
+                is PublisherFilter -> if (filter.state.isNotBlank()) {
+                    url.addQueryParameter("publisher", filter.state)
                 }
-                is PublisherFilter -> {
-                    if (filter.state.isNotBlank()) {
-                        url.addQueryParameter("publisher", filter.state)
-                    }
+                is YearFilter -> if (filter.state.isNotBlank()) {
+                    url.addQueryParameter("year", filter.state)
                 }
-                is YearFilter -> {
-                    if (filter.state.isNotBlank()) {
-                        url.addQueryParameter("year", filter.state)
-                    }
-                }
-                is GenreFilter -> {
-                    filter.state.filter { it.state }.forEach { genre ->
-                        url.addQueryParameter("genre", genre.name)
-                    }
+                is GenreFilter -> filter.state.filter { it.state }.forEach { genre ->
+                    url.addQueryParameter("genre", genre.name)
                 }
                 else -> {}
             }
         }
 
-        return GET(url.build(), headers)
+        return getSeriesList(url.build())
     }
 
-    override fun searchMangaParse(response: Response): MangasPage = popularMangaParse(response)
+    // Manga Details & Chapter List
 
-    // Manga Details
+    override suspend fun fetchMangaUpdate(
+        manga: SManga,
+        chapters: List<SChapter>,
+        fetchDetails: Boolean,
+        fetchChapters: Boolean,
+    ): SMangaUpdate = coroutineScope {
+        val details = async {
+            if (fetchDetails) {
+                client.get("$apiBase/series/${manga.url}", Fetch.XHR).parseAs<SeriesDto>().toSManga(apiBase)
+            } else {
+                manga
+            }
+        }
+        val chapterList = async {
+            if (fetchChapters) getChapterList(manga) else chapters
+        }
 
-    override fun mangaDetailsRequest(manga: SManga): Request = GET("$apiBase/series/${manga.url}", headers)
-
-    override fun mangaDetailsParse(response: Response): SManga {
-        val s = response.parseAs<SeriesDto>()
-        return s.toSManga(apiBase).apply { initialized = true }
+        SMangaUpdate(details.await(), chapterList.await())
     }
 
-    // Chapter List
-
-    override fun chapterListRequest(manga: SManga): Request = GET("$apiBase/series/${manga.url}/issues", headers)
-
-    override fun chapterListParse(response: Response): List<SChapter> {
-        val data = response.parseAs<IssuesResponse>()
+    private suspend fun getChapterList(manga: SManga): List<SChapter> {
+        val data = client.get("$apiBase/series/${manga.url}/issues", Fetch.XHR).parseAs<IssuesResponse>()
         val chapters = mutableListOf<SChapter>()
 
         for (issue in data.issues) {
             for (t in issue.translations) {
-                val teamLabel =
-                    t.teamNames
-                        .takeIf { it.isNotEmpty() }
-                        ?.joinToString()
+                val teamLabel = t.teamNames.takeIf { it.isNotEmpty() }
+                    ?.joinToString()
 
                 chapters.add(
                     SChapter.create().apply {
                         url = "/translations/${t.id}/pages"
-                        name =
-                            buildString {
-                                append("#${issue.number}")
-                                if (!issue.name.isNullOrBlank()) append(" — ${issue.name}")
-                                if (issue.translations.size > 1 && teamLabel != null) {
-                                    append(" [$teamLabel]")
-                                }
+                        name = buildString {
+                            append("#${issue.number}")
+                            if (!issue.name.isNullOrBlank()) append(" — ${issue.name}")
+                            if (issue.translations.size > 1 && teamLabel != null) {
+                                append(" [$teamLabel]")
                             }
+                        }
                         chapter_number = issue.number
                             .replace(ANNUAL_REGEX, "1000.")
                             .toFloatOrNull() ?: -1f
-                        date_upload = DATE_FORMAT.tryParse(t.createdAt)
+                        date_upload = Instant.tryParse(t.createdAt)
                         scanlator = teamLabel
                     },
                 )
@@ -172,18 +159,14 @@ abstract class NineGrid :
 
     // Page List
 
-    override fun pageListRequest(chapter: SChapter): Request = GET("$apiBase${chapter.url}", headers)
-
-    override fun pageListParse(response: Response): List<Page> {
-        val data = response.parseAs<PagesResponse>()
+    override suspend fun getPageList(chapter: SChapter): List<Page> {
+        val data = client.get("$apiBase${chapter.url}", Fetch.XHR).parseAs<PagesResponse>()
         return data.pages.map { Page(it.index, imageUrl = it.url) }
     }
 
-    override fun imageUrlParse(response: Response): String = throw UnsupportedOperationException()
-
     // Filters
 
-    override fun getFilterList(): FilterList = FilterList(
+    override fun getFilterList(data: JsonElement?): FilterList = FilterList(
         SortFilter(),
         PublisherFilter(),
         YearFilter(),
@@ -193,19 +176,17 @@ abstract class NineGrid :
     // Preferences
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) {
-        EditTextPreference(screen.context)
-            .apply {
-                key = PREF_API_KEY
-                title = "API-ключ"
-                summary = "Для трекинга прогресса"
-                setDefaultValue("")
-            }.let(screen::addPreference)
+        EditTextPreference(screen.context).apply {
+            key = PREF_API_KEY
+            title = "API-ключ"
+            summary = "Для трекинга прогресса"
+            setDefaultValue("")
+        }.let(screen::addPreference)
     }
 
     companion object {
         private const val PREF_API_KEY = "pref_api_key"
 
         private val ANNUAL_REGEX = Regex("^annual\\s*", RegexOption.IGNORE_CASE)
-        private val DATE_FORMAT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.ROOT)
     }
 }

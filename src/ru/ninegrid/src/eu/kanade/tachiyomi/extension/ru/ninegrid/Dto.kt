@@ -12,28 +12,25 @@ class SeriesListResponse(
 
 @Serializable
 class SeriesDto(
-    val id: Int,
-    val name: String,
-    val description: String? = null,
-    val publisherName: String? = null,
-    val genres: List<String> = emptyList(),
-    val status: String? = null,
-    val coverImage: String? = null,
+    private val id: Int,
+    private val name: String,
+    private val description: String? = null,
+    private val publisherName: String? = null,
+    private val genres: List<String> = emptyList(),
+    private val status: String? = null,
 ) {
     fun toSManga(apiBase: String): SManga = SManga.create().apply {
         url = id.toString()
         title = name
-        thumbnail_url = coverImage?.takeIf { it.isNotBlank() }
-            ?: "$apiBase/series/${this@SeriesDto.id}/thumbnail"
+        thumbnail_url = "$apiBase/series/${this@SeriesDto.id}/thumbnail"
         description = this@SeriesDto.description
         author = publisherName
         genre = genres.joinToString()
-        status =
-            when (this@SeriesDto.status) {
-                "Continuing" -> SManga.ONGOING
-                "Ended" -> SManga.COMPLETED
-                else -> SManga.UNKNOWN
-            }
+        status = when (this@SeriesDto.status) {
+            "Continuing" -> SManga.ONGOING
+            "Ended" -> SManga.COMPLETED
+            else -> SManga.UNKNOWN
+        }
     }
 }
 
