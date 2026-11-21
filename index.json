@@ -612,6 +612,23 @@
     ]
   },
   {
+    "name": "Multporn",
+    "pkg": "eu.kanade.tachiyomi.extension.ru.multporn",
+    "apk": "tachiyomi-ru.multporn-v1.6.1.apk",
+    "lang": "ru",
+    "code": 106001,
+    "version": "1.6.1",
+    "nsfw": 1,
+    "sources": [
+      {
+        "name": "Multporn",
+        "lang": "ru",
+        "id": "3714447188694383608",
+        "baseUrl": "https://multporn.net"
+      }
+    ]
+  },
+  {
     "name": "MyReadingManga",
     "pkg": "eu.kanade.tachiyomi.extension.ru.myreadingmanga",
     "apk": "tachiyomi-ru.myreadingmanga-v1.6.62.apk",
