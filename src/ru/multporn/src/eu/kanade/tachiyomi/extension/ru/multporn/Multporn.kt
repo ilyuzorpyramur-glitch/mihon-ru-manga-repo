@@ -24,12 +24,10 @@ import org.jsoup.nodes.Document
 abstract class Multporn : KeiSource() {
 
     // ============================== Популярное ==============================
-    override suspend fun getPopularManga(page: Int): MangasPage =
-        catalogParse(client.get("$baseUrl/comics?page=${page - 1}", Fetch.DOCUMENT).asJsoup())
+    override suspend fun getPopularManga(page: Int): MangasPage = catalogParse(client.get("$baseUrl/comics?page=${page - 1}", Fetch.DOCUMENT).asJsoup())
 
     // ============================== Недавние ==============================
-    override suspend fun getLatestUpdates(page: Int): MangasPage =
-        catalogParse(client.get("$baseUrl/manga?page=${page - 1}", Fetch.DOCUMENT).asJsoup())
+    override suspend fun getLatestUpdates(page: Int): MangasPage = catalogParse(client.get("$baseUrl/manga?page=${page - 1}", Fetch.DOCUMENT).asJsoup())
 
     // ============================== Поиск ==============================
     override suspend fun getSearchMangaList(page: Int, query: String, filters: FilterList): MangasPage {
